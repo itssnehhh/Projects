@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "791807706707",
+    "project_id": "tops-postoffice-assessment",
+    "storage_bucket": "tops-postoffice-assessment.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:791807706707:android:27c1aa619cf63f8e1a68a6",
+        "android_client_info": {
+          "package_name": "com.example.indianpostoffice"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcVTt2aSRHvukQANnsK55H6tVIutZ4tlo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
