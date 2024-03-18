@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="350dp"
+    app:cardCornerRadius="16dp"
+    android:id="@+id/cardView"
+    android:layout_marginVertical="4dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:id="@+id/iv_offer_food"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/offer_food_image_1"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tv_res_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="16dp"
+            android:layout_marginTop="12dp"
+            android:text="Pista House"
+            android:textSize="20dp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/iv_offer_food" />
+
+        <TextView
+            android:id="@+id/tv_food_type"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="16dp"
+            android:layout_marginTop="4dp"
+            android:text="Chinese"
+            android:textSize="16dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tv_res_name" />
+
+        <TextView
+            android:id="@+id/tv_food_category"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="8dp"
+            android:layout_marginTop="4dp"
+            android:text="North Indian"
+            android:textSize="16dp"
+            app:layout_constraintStart_toEndOf="@id/tv_food_type"
+            app:layout_constraintTop_toBottomOf="@+id/tv_res_name" />
+
+        <TextView
+            android:id="@+id/tv_food_price"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="16dp"
+            android:layout_marginTop="12dp"
+            android:text="$250"
+            android:textSize="16dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tv_food_type" />
+
+        <TextView
+            android:id="@+id/tv_food_disPrice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="8dp"
+            android:layout_marginTop="10dp"
+            android:text="$125"
+            android:textColor="@color/darkOrange"
+            android:textSize="18dp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toEndOf="@id/tv_food_price"
+            app:layout_constraintTop_toBottomOf="@+id/tv_food_type" />
+
+        <ImageView
+            android:id="@+id/iv_cal"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/iv_cal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.66"
+            app:layout_constraintStart_toEndOf="@+id/tv_food_disPrice"
+            app:layout_constraintTop_toTopOf="@+id/tv_food_disPrice" />
+
+        <TextView
+            android:id="@+id/tv_caleries"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="150 Cal"
+            android:textColor="@color/grey500"
+            android:textStyle="bold"
+            android:textSize="16dp"
+            android:layout_marginLeft="4dp"
+            app:layout_constraintStart_toEndOf="@+id/iv_cal"
+            app:layout_constraintTop_toTopOf="@+id/iv_cal" />
+
+
+        <View
+            android:id="@+id/view2"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_marginHorizontal="8dp"
+            android:layout_marginVertical="8dp"
+            android:background="@color/grey500"
+            app:layout_constraintTop_toBottomOf="@id/tv_food_price" />
+
+        <TextView
+            android:id="@+id/tv_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/view2"
+            android:layout_marginHorizontal="12dp"
+            android:textColor="@color/grey500"
+            android:text="Left over food and supplies are gathered and sold for 50% \noff!"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.cardview.widget.CardView>
