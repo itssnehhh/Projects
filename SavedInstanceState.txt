@@ -1,0 +1,42 @@
+In Android development using Kotlin, savedInstanceState, onSaveInstanceState(), and onRestoreInstanceState() are important concepts related to managing the state of activities across configuration changes like screen rotations, device orientation changes, or system-initiated process death and recreation. These mechanisms help ensure that the user's data and UI state are preserved during such events.
+
+-> savedInstanceState
+
+savedInstanceState is a Bundle object that allows you to save key-value pairs of primitive data types in order to retain activity state information. It is used to store transient UI state information before an activity is unexpectedly destroyed, such as during configuration changes. The system passes the savedInstanceState to the onCreate() method when the activity is being recreated, allowing you to restore the previous state.
+
+-> onSaveInstanceState()
+
+onSaveInstanceState() is a method called when an activity is about to be paused or stopped due to a configuration change (like screen rotation) or when the system needs to reclaim memory. It provides an opportunity for you to save any dynamic data or UI state into the savedInstanceState bundle. This method is typically overridden within your activity to store relevant data that will be needed later to restore the state.
+
+Here is an example of how you can implement onSaveInstanceState() in Kotlin:
+
+override fun onSaveInstanceState(outState: Bundle) {
+    super.onSaveInstanceState(outState)
+    // Save important data into the bundle
+    outState.putInt("counter", counter)
+}
+In this example, the current value of counter is stored in the outState bundle using the key "counter".
+
+-> onRestoreInstanceState()
+
+onRestoreInstanceState() is a method called after onStart() when the activity is being re-initialized from a previously saved state (i.e., after onCreate()). It is used to restore the activity's state from the savedInstanceState bundle. This method is called only if there is a saved state to restore.
+
+Here is an example of how you can implement onRestoreInstanceState() in Kotlin:
+
+
+override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+    super.onRestoreInstanceState(savedInstanceState)
+    // Restore important data from the bundle
+    counter = savedInstanceState.getInt("counter", 0)
+    // Use the restored data to update the UI, etc.
+    updateCounterTextView()
+}
+In this example, the value of counter is retrieved from savedInstanceState using the key "counter" and then used to update the UI.
+S
+* Important Points:
+
+Use savedInstanceState to save and restore transient state data that is relevant to the current instance of the activity.
+onSaveInstanceState() is used to save data into the bundle before the activity is potentially destroyed.
+onRestoreInstanceState() is used to restore data from the bundle after the activity is recreated.
+Ensure that you save and restore the same data using consistent key-value pairs within onSaveInstanceState() and onRestoreInstanceState().
+By using savedInstanceState, onSaveInstanceState(), and onRestoreInstanceState(), you can ensure that your app maintains a smooth user experience by preserving important data and UI state across configuration changes and other system events in Android.
