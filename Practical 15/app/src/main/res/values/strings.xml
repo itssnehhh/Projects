@@ -1,0 +1,230 @@
+<resources>
+    <string name="app_name">CP MathQuest Quiz App</string>
+    <string name="Home">Home</string>
+    <string name="Earn">Earn</string>
+    <string name="Profile">Profile</string>
+    <string name="Notification">Notification</string>
+    <string name="notification_screen">Notifications</string>
+    <string name="leaderboard_screen">Leaderboard</string>
+    <string name="userId">\@albertEinstein</string>
+    <string name="userName">Albert Einstein</string>
+    <string name="mailId">einstein@gmail.com</string>
+    <string name="achievements_title">Achievements</string>
+    <string name="profile_screen">Your Profile</string>
+    <string name="top_quiz_category">Top Quiz Category</string>
+    <string name="btn_see_all">See All</string>
+    <string name="user_greetings">Hello Einstein…👋</string>
+    <string name="btn_submit">Submit</string>
+    <string name="congratulations">Congratulations ! 👏</string>
+    <string name="tv_score">You have scored</string>
+    <string name="btn_restart">Restart</string>
+    <string-array name="categoryList">
+        <item>Mathematics</item>
+        <item>Science</item>
+        <item>Language</item>
+        <item>Drama</item>
+        <item>Art &amp; Craft</item>
+        <item>Knowledge</item>
+    </string-array>
+    <string-array name="quizTopicList">
+        <item>Integration</item>
+        <item>Chemistry</item>
+        <item>English</item>
+        <item>Comedy</item>
+        <item>Drawing</item>
+        <item>History</item>
+
+    </string-array>
+    <string-array name="totalQuizzes">
+        <item>10 Quiz</item>
+        <item>7 Quiz</item>
+        <item>9 Quiz</item>
+        <item>3 Quiz</item>
+        <item>4 Quiz</item>
+        <item>11 Quiz</item>
+    </string-array>
+
+    <string-array name="timingList">
+        <item>Daily</item>
+        <item>Weekly</item>
+        <item>All time</item>
+    </string-array>
+
+    <string-array name="usersList">
+        <item>Einstein</item>
+        <item>Elizabeth</item>
+        <item>Jessica</item>
+        <item>William</item>
+        <item>Richard</item>
+        <item>Daniel</item>
+        <item>Lisa</item>
+        <item>Susan</item>
+        <item>Ashley</item>
+        <item>Andrew</item>
+        <item>George</item>
+        <item>Cynthia</item>
+        <item>James</item>
+        <item>Ronald</item>
+    </string-array>
+
+    <integer-array name="scoreList">
+        <item>20000</item>
+        <item>9000</item>
+        <item>8953</item>
+        <item>8423</item>
+        <item>7895</item>
+        <item>7623</item>
+        <item>6523</item>
+        <item>6235</item>
+        <item>5493</item>
+        <item>4965</item>
+        <item>3256</item>
+        <item>3489</item>
+        <item>2976</item>
+        <item>2563</item>
+    </integer-array>
+
+    <string-array name="notificationList">
+        <item>Congratulations! You\'ve Unlocked Our Silver membership!</item>
+        <item>It\'s been so long since you played that QuizUp is now a pizza place. Swipe right for free pizza.</item>
+        <item>Hey! It\'s time for your spanish lesson. Hurry though, your family misses you. See if you can translate this one for them : "Lio conmigo,y tu familia no tendra dedos" </item>
+        <item>Congratulations! You\'ve Unlocked Our Bronze membership!</item>
+        <item>Redeem Your Points before it\'s too late.</item>
+        <item>Congratulations! You\'ve Unlocked Our Silver membership!</item>
+        <item>It\'s been so long since you played that QuizUp is now a pizza place. Swipe right for free pizza.</item>
+        <item>Hey! It\'s time for your spanish lesson. Hurry though, your family misses you. See if you can translate this one for them : "Lio conmigo,y tu familia no tendra dedos" </item>
+        <item>Congratulations! You\'ve Unlocked Our Bronze membership!</item>
+        <item>Redeem Your Points before it\'s too late.</item>
+    </string-array>
+
+    <string-array name="achievementList">
+        <item>Silver I</item>
+        <item>Silver II</item>
+        <item>Silver III</item>
+        <item>Silver IV</item>
+        <item>Bronze I</item>
+        <item>Bronze II</item>
+        <item>Bronze III</item>
+        <item>Bronze IV</item>
+    </string-array>
+
+    <string-array name="switchTitleList">
+        <item>Theme</item>
+        <item>Notification</item>
+    </string-array>
+
+    <string-array name="settingsList">
+        <item>Share &amp; Earn</item>
+        <item>Help</item>
+        <item>Logout</item>
+    </string-array>
+
+    <string-array name="questionList">
+        <item>1. What is the largest two-digit prime number?</item>
+        <item>2. What comes next in the series: 2, 4, 8, 16, …?</item>
+        <item>3. If you buy 4 toys for $120 each, what is the total cost?</item>
+        <item>4. What is the difference between the largest and smallest digits?</item>
+        <item>5. What fraction represents half of a quarter?</item>
+        <item>6. How many minutes are there in three and a half hours?</item>
+        <item>7. What is 5% of 200?</item>
+        <item>8. If a train travels 60 miles in 1 hour, how long does it take to travel 180 miles?</item>
+        <item>9. What is the next prime number after 5?</item>
+        <item>10. If you have two quarters, three dimes, and four pennies, how much money do you have?</item>
+        <item>11. What is the perimeter of a square with a side length of 6 cm?</item>
+        <item>12. What number is halfway between 10 and 20?</item>
+        <item>13. How many edges does a cube have?</item>
+        <item>14. If a circle has a diameter of 8 cm, what is its radius?</item>
+        <item>15. What is the sum of the angles in a triangle?</item>
+    </string-array>
+
+    <string-array name="firstOptionList">
+        <item>A. 97</item>
+        <item>A. 32</item>
+        <item>A. $480</item>
+        <item>A. 9</item>
+        <item>A. 1/6</item>
+        <item>A. 150</item>
+        <item>A. 10</item>
+        <item>A. 2 hours</item>
+        <item>A. 6</item>
+        <item>A. 84 cents</item>
+        <item>A. 24 cm</item>
+        <item>A. 15</item>
+        <item>A. 6</item>
+        <item>A. 16 cm</item>
+        <item>A. 180 degrees</item>
+    </string-array>
+
+    <string-array name="secondOptionList">
+        <item>B. 93</item>
+        <item>B. 24</item>
+        <item>B. $500</item>
+        <item>B. 8</item>
+        <item>B. 1/4</item>
+        <item>B. 180</item>
+        <item>B. 15</item>
+        <item>B. 3 hours</item>
+        <item>B. 7</item>
+        <item>B. 73 cents</item>
+        <item>B. 18 cm</item>
+        <item>B. 14</item>
+        <item>B. 8</item>
+        <item>B. 4 cm</item>
+        <item>B. 90 degrees</item>
+    </string-array>
+
+    <string-array name="thirdOptionList">
+        <item>C. 89</item>
+        <item>C. 18</item>
+        <item>C. $450</item>
+        <item>C. 10</item>
+        <item>C. 1/2</item>
+        <item>C. 210</item>
+        <item>C. 20</item>
+        <item>C. 4 hours</item>
+        <item>C. 8</item>
+        <item>C. 92 cents</item>
+        <item>C. 36 cm</item>
+        <item>C. 16</item>
+        <item>C. 12</item>
+        <item>C. 8 cm</item>
+        <item>C. 360 degrees</item>
+    </string-array>
+
+    <string-array name="fourthOptionList">
+        <item>D. 91</item>
+        <item>D. 28</item>
+        <item>D. $400</item>
+        <item>D. 7</item>
+        <item>D. 1/8</item>
+        <item>D. 200</item>
+        <item>D. 5</item>
+        <item>D. 1.5 hours</item>
+        <item>D. 9</item>
+        <item>D. 65 cents</item>
+        <item>D. 12 cm</item>
+        <item>D. 13</item>
+        <item>D. 10</item>
+        <item>D. 12 cm</item>
+        <item>D. 270 degrees</item>
+    </string-array>
+
+    <string-array name="answerList">
+        <item>1</item>
+        <item>1</item>
+        <item>1</item>
+        <item>1</item>
+        <item>4</item>
+        <item>3</item>
+        <item>1</item>
+        <item>2</item>
+        <item>2</item>
+        <item>1</item>
+        <item>1</item>
+        <item>1</item>
+        <item>3</item>
+        <item>2</item>
+        <item>1</item>
+    </string-array>
+
+</resources>
