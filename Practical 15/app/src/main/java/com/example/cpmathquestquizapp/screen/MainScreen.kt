@@ -1,10 +1,10 @@
-package com.example.cpmathquestquizapp.screen
+package com.example.mathquestquizapplication.screen
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.BottomAppBar
@@ -22,20 +22,22 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.cpmathquestquizapp.model.BottomNavItem
+import com.example.mathquestquizapplication.model.BottomNavItem
 
 @Composable
-fun MainScreen() {
+fun MainScreen(darkTheme: Boolean, function: () -> Unit) {
+
     val navController = rememberNavController()
 
-    Surface(color = Color.White) {
-        Scaffold(
-            bottomBar = {
-                BottomNavigationBar(navController = navController)
-            }, content = {
-                NavHostContainer(navController = navController, padding = it)
-            }
-        )
+
+        Surface(color = Color.White) {
+            Scaffold(
+                bottomBar = {
+                    BottomNavigationBar(navController = navController)
+                }, content = {
+                    NavHostContainer(navController = navController, padding = it,darkTheme,function)
+                }
+            )
     }
 }
 
@@ -48,7 +50,7 @@ object Constants {
         ),
         BottomNavItem(
             label = "Leaderboard",
-            icon = Icons.Filled.List,
+            icon = Icons.AutoMirrored.Filled.List,
             route = "leaderboard"
         ),
         BottomNavItem(
@@ -67,7 +69,9 @@ object Constants {
 @Composable
 fun NavHostContainer(
     navController: NavHostController,
-    padding: PaddingValues
+    padding: PaddingValues,
+    darkTheme: Boolean,
+    function: () -> Unit
 ) {
     NavHost(
         navController = navController,
@@ -84,13 +88,10 @@ fun NavHostContainer(
                 NotificationScreen()
             }
             composable("profile") {
-                ProfileScreen()
+                ProfileScreen(darkTheme,function)
             }
-            composable("quiz_screen_route"){
-                QuizScreen(navController = navController)
-            }
-            composable("result_screen_route"){
-                ResultScreen(navController = navController)
+            composable("quizStart") {
+                QuizScreen(navController)
             }
         })
 }

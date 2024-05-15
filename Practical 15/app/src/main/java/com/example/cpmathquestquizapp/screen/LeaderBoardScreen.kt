@@ -1,4 +1,4 @@
-package com.example.cpmathquestquizapp.screen
+package com.example.mathquestquizapplication.screen
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -32,8 +33,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.cpmathquestquizapp.R
-import com.example.cpmathquestquizapp.model.Score
+import com.example.mathquestquizapplication.R
+import com.example.mathquestquizapplication.model.Score
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,7 +54,6 @@ fun LeaderBoardScreen() {
                 }
             )
         }) {
-
         val nameList = stringArrayResource(id = R.array.usersList)
         val scoreList = integerArrayResource(id = R.array.scoreList)
 
@@ -71,7 +71,7 @@ fun LeaderBoardScreen() {
             modifier = Modifier
                 .padding(it)
                 .fillMaxSize()
-                .background(Color(0xFFF3FFF4))
+                .background(MaterialTheme.colorScheme.onSurface)
         ) {
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
@@ -88,7 +88,6 @@ fun LeaderBoardScreen() {
         }
     }
 }
-
 
 @Composable
 fun UserScoreCard(id: Int, name: String, score: Int) {
@@ -117,6 +116,7 @@ fun UserScoreCard(id: Int, name: String, score: Int) {
 
                 ) {
                 Text(
+                    color = MaterialTheme.colorScheme.onSecondary,
                     modifier = Modifier.padding(8.dp),
                     text = "$id",
                     textAlign = TextAlign.Center,
@@ -125,6 +125,7 @@ fun UserScoreCard(id: Int, name: String, score: Int) {
                 )
             }
             Text(
+                color = MaterialTheme.colorScheme.onSecondary,
                 text = name,
                 fontSize = 16.sp,
                 modifier = Modifier
@@ -133,6 +134,7 @@ fun UserScoreCard(id: Int, name: String, score: Int) {
             )
             Image(painter = painterResource(id = R.drawable.coin), contentDescription = "")
             Text(
+                color = MaterialTheme.colorScheme.onSecondary,
                 text = "$score",
                 textAlign = TextAlign.End,
                 fontWeight = FontWeight.Bold,

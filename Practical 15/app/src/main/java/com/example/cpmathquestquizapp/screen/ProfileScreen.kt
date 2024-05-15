@@ -1,4 +1,4 @@
-package com.example.cpmathquestquizapp.screen
+package com.example.mathquestquizapplication.screen
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -39,11 +41,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.cpmathquestquizapp.R
+import com.example.mathquestquizapplication.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(darkTheme: Boolean, function: () -> Unit) {
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -61,13 +64,14 @@ fun ProfileScreen() {
             modifier = Modifier
                 .padding(it)
                 .fillMaxSize()
-                .background(Color(0xFFF3FFF4))
+                .background(MaterialTheme.colorScheme.onSurface)
         ) {
             item {
                 UserDetailCard()
             }
             item {
                 Text(
+                    color = MaterialTheme.colorScheme.onPrimary,
                     text = stringResource(R.string.achievements_title),
                     modifier = Modifier.padding(12.dp),
                     fontSize = 18.sp,
@@ -82,24 +86,25 @@ fun ProfileScreen() {
                 }
             }
             item {
-                Spacer(
+                HorizontalDivider(
                     modifier = Modifier
                         .padding(16.dp)
-                        .height(2.dp)
-                        .background(Color.Black)
+                        .height(2.dp),
+                    color = Color.Black
                 )
             }
             item {
-                AppSettingsCards()
+                AppSettingsCards(darkTheme, function)
             }
         }
     }
 }
 
+
 @Composable
-fun AppSettingsCards() {
+fun AppSettingsCards(darkTheme: Boolean, function: () -> Unit) {
     Column {
-        SettingSwitchCards()
+        SettingSwitchCards(darkTheme, function)
         Spacer(
             modifier = Modifier
                 .padding(4.dp)
@@ -111,7 +116,6 @@ fun AppSettingsCards() {
 
 val settingsImageList = intArrayOf(R.drawable.share, R.drawable.help, R.drawable.logout)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsList() {
 
@@ -136,6 +140,7 @@ fun SettingsList() {
                         .padding(8.dp)
                 )
                 Text(
+                    color = MaterialTheme.colorScheme.onSecondary,
                     fontWeight = FontWeight.Bold,
                     text = settingsList[i],
                     fontSize = 16.sp,
@@ -148,11 +153,8 @@ fun SettingsList() {
 }
 
 @Composable
-fun SettingSwitchCards() {
+fun SettingSwitchCards(darkTheme: Boolean, function: () -> Unit) {
 
-    var darkTheme by remember {
-        mutableStateOf(false)
-    }
     var notificationOnOff by remember {
         mutableStateOf(true)
     }
@@ -172,6 +174,7 @@ fun SettingSwitchCards() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
+                color = MaterialTheme.colorScheme.onSecondary,
                 fontWeight = FontWeight.Bold,
                 text = switchTitleList[0],
                 fontSize = 18.sp,
@@ -185,7 +188,7 @@ fun SettingSwitchCards() {
                     uncheckedTrackColor = Color(0xFFEAF8DA)
                 ),
                 checked = darkTheme,
-                onCheckedChange = { darkTheme = it },
+                onCheckedChange = { function() },
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
         }
@@ -196,8 +199,12 @@ fun SettingSwitchCards() {
             .border(1.dp, Color.LightGray, CardDefaults.shape),
         colors = CardDefaults.cardColors(Color.White)
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
+                color = MaterialTheme.colorScheme.onSecondary,
                 fontWeight = FontWeight.Bold,
                 text = switchTitleList[1],
                 fontSize = 18.sp,
@@ -217,6 +224,7 @@ fun SettingSwitchCards() {
         }
     }
 }
+
 
 val achievementImageList = intArrayOf(
     R.drawable.silver_medal,
@@ -308,7 +316,8 @@ fun UserDetailCard() {
                             .align(Alignment.CenterVertically),
                         text = stringResource(R.string.userName),
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSecondary
                     )
                 }
                 Row(
@@ -322,6 +331,7 @@ fun UserDetailCard() {
                         contentDescription = ""
                     )
                     Text(
+                        color = MaterialTheme.colorScheme.onSecondary,
                         modifier = Modifier
                             .padding(start = 4.dp)
                             .align(Alignment.CenterVertically),
@@ -336,5 +346,5 @@ fun UserDetailCard() {
 @Preview
 @Composable
 fun ShowProfilePreview() {
-    ProfileScreen()
+    ProfileScreen(darkTheme = false, function = { })
 }

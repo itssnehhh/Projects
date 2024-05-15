@@ -1,6 +1,5 @@
-package com.example.cpmathquestquizapp.screen
+package com.example.mathquestquizapplication.screen
 
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -24,6 +23,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,12 +39,13 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.example.cpmathquestquizapp.R
-import com.example.cpmathquestquizapp.model.QuizCategory
+import com.example.mathquestquizapplication.R
+import com.example.mathquestquizapplication.model.QuizCategory
 
 val categoryImageList = intArrayOf(
     R.drawable.math,
@@ -81,7 +82,7 @@ fun HomeScreen(navController: NavHostController) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = Color(0xFFF3FFF4))
+            .background(MaterialTheme.colorScheme.onSurface)
     ) {
         item {
             TopBox(navController)
@@ -99,6 +100,7 @@ fun HomeScreen(navController: NavHostController) {
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
+                        color = MaterialTheme.colorScheme.onPrimary,
                         text = stringResource(R.string.top_quiz_category),
                         modifier = Modifier.weight(1f),
                         fontWeight = FontWeight.Bold,
@@ -141,6 +143,7 @@ fun HomeScreen(navController: NavHostController) {
                     .fillMaxWidth()
             ) {
                 Text(
+                    color = MaterialTheme.colorScheme.onPrimary,
                     text = "Live Quizzes",
                     modifier = Modifier.weight(1f),
                     fontWeight = FontWeight.Bold,
@@ -181,6 +184,7 @@ fun LiveQuizCard(image: Int, topic: String, subject: String, totalQuiz: String) 
                     .weight(1f)
             ) {
                 Text(
+                    color = MaterialTheme.colorScheme.onSecondary,
                     text = topic,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,
@@ -188,6 +192,7 @@ fun LiveQuizCard(image: Int, topic: String, subject: String, totalQuiz: String) 
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
+                        color = MaterialTheme.colorScheme.onSecondary,
                         text = subject,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -200,6 +205,7 @@ fun LiveQuizCard(image: Int, topic: String, subject: String, totalQuiz: String) 
                             .size(8.dp)
                     )
                     Text(
+                        color = MaterialTheme.colorScheme.onSecondary,
                         text = totalQuiz, fontSize = 16.sp,
                         modifier = Modifier.padding(4.dp)
                     )
@@ -216,7 +222,7 @@ fun CategoryCardImage(image: Int, title: String) {
         elevation = CardDefaults.cardElevation(4.dp),
         modifier = Modifier
             .padding(horizontal = 8.dp)
-            .size(100.dp)
+            .size(120.dp)
             .border(1.dp, Color.LightGray, CardDefaults.shape),
         colors = CardDefaults.cardColors(Color(0xFFE2FFC2))
     ) {
@@ -235,8 +241,11 @@ fun CategoryCardImage(image: Int, title: String) {
             Text(
                 color = Color.Black,
                 text = title,
+                textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(8.dp)
+                modifier = Modifier
+                    .padding(8.dp)
+                    .fillMaxWidth()
             )
         }
     }
@@ -245,8 +254,6 @@ fun CategoryCardImage(image: Int, title: String) {
 
 @Composable
 fun TopBox(navController: NavHostController) {
-
-    val context = LocalContext.current
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(
@@ -290,6 +297,7 @@ fun TopBox(navController: NavHostController) {
                     painter = painterResource(id = R.drawable.user_image),
                     contentDescription = ""
                 )
+
             }
             Box(modifier = Modifier.fillMaxWidth()) {
                 Card(
@@ -305,6 +313,7 @@ fun TopBox(navController: NavHostController) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
+                            color = MaterialTheme.colorScheme.onSecondary,
                             fontWeight = FontWeight.Bold,
                             text = "Start Your Quiz and Earn more Points",
                             fontSize = 18.sp
@@ -314,8 +323,7 @@ fun TopBox(navController: NavHostController) {
                             border = BorderStroke(1.dp, Color.Gray),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00F00C)),
                             onClick = {
-                                Toast.makeText(context, "Quiz Will Start", Toast.LENGTH_SHORT).show()
-                                navController.navigate("quiz_screen_route")
+                                navController.navigate("quizStart")
                             }, modifier = Modifier.padding(2.dp)
                         ) {
                             Text(text = "Start")
