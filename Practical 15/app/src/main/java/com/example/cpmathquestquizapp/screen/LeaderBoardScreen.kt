@@ -1,4 +1,4 @@
-package com.example.mathquestquizapplication.screen
+package com.example.cpmathquestquizapp.screen
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -33,8 +33,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.mathquestquizapplication.R
-import com.example.mathquestquizapplication.model.Score
+import com.example.cpmathquestquizapp.R
+import com.example.cpmathquestquizapp.model.Score
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +54,7 @@ fun LeaderBoardScreen() {
                 }
             )
         }) {
+
         val nameList = stringArrayResource(id = R.array.usersList)
         val scoreList = integerArrayResource(id = R.array.scoreList)
 
@@ -125,7 +126,7 @@ fun UserScoreCard(id: Int, name: String, score: Int) {
                 )
             }
             Text(
-                color = MaterialTheme.colorScheme.onSecondary,
+                color = MaterialTheme.colorScheme.secondary,
                 text = name,
                 fontSize = 16.sp,
                 modifier = Modifier

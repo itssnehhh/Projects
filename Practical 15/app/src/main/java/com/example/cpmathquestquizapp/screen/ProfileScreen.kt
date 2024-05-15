@@ -1,4 +1,4 @@
-package com.example.mathquestquizapplication.screen
+package com.example.cpmathquestquizapp.screen
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
@@ -41,12 +40,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.mathquestquizapplication.R
+import com.example.cpmathquestquizapp.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(darkTheme: Boolean, function: () -> Unit) {
-
+fun ProfileScreen(darkTheme: Boolean,function: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -64,14 +62,13 @@ fun ProfileScreen(darkTheme: Boolean, function: () -> Unit) {
             modifier = Modifier
                 .padding(it)
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.onSurface)
         ) {
             item {
                 UserDetailCard()
             }
             item {
                 Text(
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = MaterialTheme.colorScheme.secondary,
                     text = stringResource(R.string.achievements_title),
                     modifier = Modifier.padding(12.dp),
                     fontSize = 18.sp,
@@ -86,11 +83,11 @@ fun ProfileScreen(darkTheme: Boolean, function: () -> Unit) {
                 }
             }
             item {
-                HorizontalDivider(
+                Spacer(
                     modifier = Modifier
                         .padding(16.dp)
-                        .height(2.dp),
-                    color = Color.Black
+                        .height(2.dp)
+                        .background(Color.Black)
                 )
             }
             item {
@@ -116,6 +113,7 @@ fun AppSettingsCards(darkTheme: Boolean, function: () -> Unit) {
 
 val settingsImageList = intArrayOf(R.drawable.share, R.drawable.help, R.drawable.logout)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsList() {
 
@@ -140,7 +138,7 @@ fun SettingsList() {
                         .padding(8.dp)
                 )
                 Text(
-                    color = MaterialTheme.colorScheme.onSecondary,
+                    color = MaterialTheme.colorScheme.secondary,
                     fontWeight = FontWeight.Bold,
                     text = settingsList[i],
                     fontSize = 16.sp,
@@ -174,7 +172,7 @@ fun SettingSwitchCards(darkTheme: Boolean, function: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                color = MaterialTheme.colorScheme.onSecondary,
+                color = MaterialTheme.colorScheme.secondary,
                 fontWeight = FontWeight.Bold,
                 text = switchTitleList[0],
                 fontSize = 18.sp,
@@ -204,7 +202,7 @@ fun SettingSwitchCards(darkTheme: Boolean, function: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                color = MaterialTheme.colorScheme.onSecondary,
+                color = MaterialTheme.colorScheme.secondary,
                 fontWeight = FontWeight.Bold,
                 text = switchTitleList[1],
                 fontSize = 18.sp,
@@ -317,7 +315,7 @@ fun UserDetailCard() {
                         text = stringResource(R.string.userName),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondary
+                        color = MaterialTheme.colorScheme.secondary
                     )
                 }
                 Row(
@@ -331,7 +329,7 @@ fun UserDetailCard() {
                         contentDescription = ""
                     )
                     Text(
-                        color = MaterialTheme.colorScheme.onSecondary,
+                        color = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier
                             .padding(start = 4.dp)
                             .align(Alignment.CenterVertically),

@@ -18,6 +18,11 @@
     <string name="congratulations">Congratulations ! 👏</string>
     <string name="tv_score">You have scored</string>
     <string name="btn_restart">Restart</string>
+    <string name="btn_next">Next</string>
+    <string name="poor">Poor</string>
+    <string name="good">Good</string>
+    <string name="very_good">Very Good</string>
+    <string name="excellence_level">Excellence Level: %1$s</string>
     <string-array name="categoryList">
         <item>Mathematics</item>
         <item>Science</item>
@@ -141,25 +146,25 @@
         <item>A. 97</item>
         <item>A. 32</item>
         <item>A. $480</item>
-        <item>A. 9</item>
-        <item>A. 1/6</item>
-        <item>A. 150</item>
+        <item>A. 8</item>
+        <item>A. 1/2</item>
+        <item>A. 210</item>
         <item>A. 10</item>
         <item>A. 2 hours</item>
         <item>A. 6</item>
-        <item>A. 84 cents</item>
-        <item>A. 24 cm</item>
+        <item>A. 65 cents</item>
+        <item>A. 36 cm</item>
         <item>A. 15</item>
         <item>A. 6</item>
         <item>A. 16 cm</item>
-        <item>A. 180 degrees</item>
+        <item>A. 270 degrees</item>
     </string-array>
 
     <string-array name="secondOptionList">
         <item>B. 93</item>
         <item>B. 24</item>
         <item>B. $500</item>
-        <item>B. 8</item>
+        <item>B. 9</item>
         <item>B. 1/4</item>
         <item>B. 180</item>
         <item>B. 15</item>
@@ -178,13 +183,13 @@
         <item>C. 18</item>
         <item>C. $450</item>
         <item>C. 10</item>
-        <item>C. 1/2</item>
-        <item>C. 210</item>
+        <item>C. 1/8</item>
+        <item>C. 150</item>
         <item>C. 20</item>
         <item>C. 4 hours</item>
         <item>C. 8</item>
         <item>C. 92 cents</item>
-        <item>C. 36 cm</item>
+        <item>C. 24 cm</item>
         <item>C. 16</item>
         <item>C. 12</item>
         <item>C. 8 cm</item>
@@ -196,35 +201,35 @@
         <item>D. 28</item>
         <item>D. $400</item>
         <item>D. 7</item>
-        <item>D. 1/8</item>
+        <item>D. 1/6</item>
         <item>D. 200</item>
         <item>D. 5</item>
         <item>D. 1.5 hours</item>
         <item>D. 9</item>
-        <item>D. 65 cents</item>
+        <item>D. 84 cents</item>
         <item>D. 12 cm</item>
         <item>D. 13</item>
         <item>D. 10</item>
         <item>D. 12 cm</item>
-        <item>D. 270 degrees</item>
+        <item>D. 180 degrees</item>
     </string-array>
 
     <string-array name="answerList">
-        <item>1</item>
-        <item>1</item>
-        <item>1</item>
-        <item>1</item>
-        <item>4</item>
-        <item>3</item>
+        <item>0</item>
+        <item>0</item>
+        <item>0</item>
         <item>1</item>
         <item>2</item>
-        <item>2</item>
-        <item>1</item>
+        <item>0</item>
+        <item>0</item>
         <item>1</item>
         <item>1</item>
         <item>3</item>
         <item>2</item>
+        <item>0</item>
+        <item>2</item>
         <item>1</item>
+        <item>3</item>
     </string-array>
 
 </resources>

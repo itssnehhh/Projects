@@ -1,4 +1,4 @@
-package com.example.mathquestquizapplication.screen
+package com.example.cpmathquestquizapp.screen
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -44,8 +44,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.example.mathquestquizapplication.R
-import com.example.mathquestquizapplication.model.QuizCategory
+import com.example.cpmathquestquizapp.R
+import com.example.cpmathquestquizapp.model.QuizCategory
 
 val categoryImageList = intArrayOf(
     R.drawable.math,
@@ -184,7 +184,7 @@ fun LiveQuizCard(image: Int, topic: String, subject: String, totalQuiz: String) 
                     .weight(1f)
             ) {
                 Text(
-                    color = MaterialTheme.colorScheme.onSecondary,
+                    color = MaterialTheme.colorScheme.secondary,
                     text = topic,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,
@@ -192,7 +192,7 @@ fun LiveQuizCard(image: Int, topic: String, subject: String, totalQuiz: String) 
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        color = MaterialTheme.colorScheme.onSecondary,
+                        color = MaterialTheme.colorScheme.secondary,
                         text = subject,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -205,7 +205,7 @@ fun LiveQuizCard(image: Int, topic: String, subject: String, totalQuiz: String) 
                             .size(8.dp)
                     )
                     Text(
-                        color = MaterialTheme.colorScheme.onSecondary,
+                        color = MaterialTheme.colorScheme.secondary,
                         text = totalQuiz, fontSize = 16.sp,
                         modifier = Modifier.padding(4.dp)
                     )
@@ -313,7 +313,7 @@ fun TopBox(navController: NavHostController) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            color = MaterialTheme.colorScheme.onSecondary,
+                            color = MaterialTheme.colorScheme.secondary,
                             fontWeight = FontWeight.Bold,
                             text = "Start Your Quiz and Earn more Points",
                             fontSize = 18.sp

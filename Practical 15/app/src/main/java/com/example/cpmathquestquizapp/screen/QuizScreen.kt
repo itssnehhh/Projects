@@ -1,6 +1,5 @@
-package com.example.mathquestquizapplication.screen
+package com.example.cpmathquestquizapp.screen
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,9 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -25,7 +23,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,8 +44,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.example.mathquestquizapplication.R
-import com.example.mathquestquizapplication.model.Questions
+import com.example.cpmathquestquizapp.R
+import com.example.cpmathquestquizapp.model.Question
 
 @Composable
 fun QuizScreen(navController: NavHostController) {
@@ -71,7 +68,7 @@ fun QuizScreen(navController: NavHostController) {
                         navController.navigateUp()
                     }) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
+                            Icons.Filled.ArrowBack,
                             contentDescription = "",
                             tint = Color.Black
                         )
@@ -107,33 +104,38 @@ fun StartQuizScreen() {
     } else {
         QuizCard(
             question = questions[currentQuestionIndex],
-            onAnswerSelected = { selectedOptionIndex ->
-                val isCorrect =
-                    selectedOptionIndex == questions[currentQuestionIndex].correctAnswer
-
-                if (isCorrect)
-                    score++
-
+            onNextClicked = {
                 if (currentQuestionIndex < questions.size - 1) {
                     currentQuestionIndex++
                 } else {
                     showResult = true
                 }
             },
-            currentQuestionIndex = currentQuestionIndex
+            updateScore = { isCorrect ->
+                if (isCorrect) {
+                    score++
+                }
+            },
+            currentQuestionIndex
         )
     }
 }
 
 @Composable
-fun QuizCard(question: Questions, onAnswerSelected: (Int) -> Unit, currentQuestionIndex: Int) {
+fun QuizCard(
+    question: Question,
+    onNextClicked: () -> Unit,
+    updateScore: (Boolean) -> Unit,
+    currentQuestionIndex: Int,
+) {
 
     var selectedOption by remember {
         mutableStateOf("")
     }
-    val onSelectionChange = { text: String ->
-        selectedOption = text
-    }
+
+    val isAnswerSelected by remember { mutableStateOf(false) }
+
+    var correctOptionIndex by remember { mutableIntStateOf(-1) }
 
     Column {
         Row(
@@ -162,16 +164,12 @@ fun QuizCard(question: Questions, onAnswerSelected: (Int) -> Unit, currentQuesti
             )
         }
 
-        val animatedProgress by animateFloatAsState(
-            targetValue = (currentQuestionIndex) / generateQuestions().size.toFloat(),
-            animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec, label = ""
-        )
         LinearProgressIndicator(
-            progress = { animatedProgress },
+            progress = (currentQuestionIndex) / generateQuestions().size.toFloat(),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 20.dp, end = 20.dp, top = 16.dp),
-            trackColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.16f),
+            trackColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.16f),
         )
     }
 
@@ -197,9 +195,9 @@ fun QuizCard(question: Questions, onAnswerSelected: (Int) -> Unit, currentQuesti
                     .fillMaxSize()
             ) {
                 Text(
-                    color = MaterialTheme.colorScheme.onSecondary,
+                    color = MaterialTheme.colorScheme.secondary,
                     fontWeight = FontWeight.Bold,
-                    text = question.question,
+                    text = question.text,
                     modifier = Modifier
                         .padding(16.dp),
                     fontSize = 20.sp,
@@ -209,37 +207,48 @@ fun QuizCard(question: Questions, onAnswerSelected: (Int) -> Unit, currentQuesti
         }
 
         question.options.forEachIndexed { index, option ->
+
+            val isCorrect = index == question.correctAnswer
+            val isSelected = selectedOption == option
+
             Card(
-                colors = CardDefaults.cardColors(Color(0xFFE2FFC2)),
+                colors = if (isSelected) {
+                    if (isCorrect) {
+                        CardDefaults.cardColors(Color(0xFF00F00C)) // Green if selected and correct
+                    } else {
+                        CardDefaults.cardColors(Color.Red) // Red if selected but incorrect
+                    }
+                } else {
+                    CardDefaults.cardColors(Color(0xFFE2FFC2)) // Default color for unselected options
+                },
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 4.dp)
             ) {
                 Text(
-                    color = MaterialTheme.colorScheme.onSecondary,
+                    color = MaterialTheme.colorScheme.secondary,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 20.sp,
                     text = option,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = { onSelectionChange(option) })
+                        .clickable {
+                            if (!isAnswerSelected) {
+                                selectedOption = option
+                                correctOptionIndex = question.correctAnswer
+                                updateScore(isCorrect)
+                            }
+                        }
                         .border(
                             width = 2.dp,
                             Color.LightGray,
                             CardDefaults.shape
                         )
-                        .selectable(
-                            selected = (option.contentEquals(option)),
-                            onClick = { onAnswerSelected(index) }
-                        )
                         .padding(16.dp)
                 )
             }
         }
-
         Button(
-            onClick = {
-
-            },
+            onClick = onNextClicked,
             modifier = Modifier.padding(top = 16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00F00C))
         ) {
@@ -251,6 +260,7 @@ fun QuizCard(question: Questions, onAnswerSelected: (Int) -> Unit, currentQuesti
         }
     }
 }
+
 
 @Composable
 fun ResultCard(
@@ -300,19 +310,19 @@ fun ResultCard(
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(
-                    color = MaterialTheme.colorScheme.onSecondary,
+                    color = MaterialTheme.colorScheme.secondary,
                     text = "$score",
                     fontSize = 24.sp,
                     modifier = Modifier.padding(horizontal = 2.dp)
                 )
                 Text(
-                    color = MaterialTheme.colorScheme.onSecondary,
+                    color = MaterialTheme.colorScheme.secondary,
                     text = "/",
                     fontSize = 28.sp,
                     modifier = Modifier.padding(horizontal = 2.dp)
                 )
                 Text(
-                    color = MaterialTheme.colorScheme.onSecondary,
+                    color = MaterialTheme.colorScheme.secondary,
                     text = "$totalQuestions",
                     fontSize = 24.sp,
                     modifier = Modifier.padding(horizontal = 2.dp)
@@ -324,7 +334,7 @@ fun ResultCard(
                 else -> stringResource(R.string.very_good)
             }
             Text(
-                color = MaterialTheme.colorScheme.onSecondary,
+                color = MaterialTheme.colorScheme.secondary,
                 text = stringResource(R.string.excellence_level, excellenceLevel),
                 modifier = Modifier
                     .padding(8.dp)
@@ -352,7 +362,7 @@ fun ResultCard(
 }
 
 @Composable
-fun generateQuestions(): List<Questions> {
+fun generateQuestions(): List<Question> {
 
     val questionList = stringArrayResource(id = R.array.questionList)
     val firstOptionList = stringArrayResource(id = R.array.firstOptionList)
@@ -362,11 +372,11 @@ fun generateQuestions(): List<Questions> {
 
     val correctOptionList = stringArrayResource(id = R.array.answerList).map { it.toInt() }
 
-    val questions = mutableListOf<Questions>()
+    val questions = mutableListOf<Question>()
 
     for (i in questionList.indices) {
         questions.add(
-            Questions(
+            Question(
                 questionList[i],
                 listOf(
                     firstOptionList[i],
