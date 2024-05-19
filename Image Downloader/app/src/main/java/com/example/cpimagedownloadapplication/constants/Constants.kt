@@ -5,5 +5,7 @@ class Constants {
     companion object{
         const val IMAGE_SCREEN = "imageScreen"
         const val HOME_SCREEN = "homeScreen"
+        const val CHANNEL_ID = "download_channel"
+        const val NOTIFICATION_ID = 1
     }
 }

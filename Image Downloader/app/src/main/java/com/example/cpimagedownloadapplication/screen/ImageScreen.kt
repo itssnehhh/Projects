@@ -30,6 +30,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.cpimagedownloadapplication.R
 import com.example.cpimagedownloadapplication.utils.DownloadUtils
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -63,16 +64,34 @@ fun ImageScreen(imageUrl: String) {
 
         Button(
             onClick = {
+                downloadJob?.cancel()
                 downloadJob = scope.launch {
                     DownloadUtils.downloadImage(
                         context = context,
                         imageUrl = imageUrl,
-                        onProgressUpdate = { progress -> downloadProgress = progress },
-                        onComplete = { success -> downloadStatus = if (success) "Download Successful" else "Download Failed" },
-                        onCancel = { downloadStatus = "Download Cancelled" }
+                        onProgressUpdate = { progress ->
+                            downloadProgress = progress
+                        },
+                        onComplete = { success ->
+                            downloadStatus =
+                                if (success) "Download Successful" else "Download Failed"
+                            downloadProgress = 0
+                        },
+                        onCancel = {
+                            downloadStatus = "Download Cancelled"
+                            downloadProgress = 0
+                        }
                     )
+
+                    downloadJob?.let {
+                        while (it.isActive && downloadProgress < 100) {
+                            delay(300)
+                            downloadProgress += 10
+                        }
+                    }
                 }
-            },    modifier = Modifier.padding(8.dp)
+            },
+            modifier = Modifier.padding(8.dp)
         ) {
             Text(text = stringResource(id = R.string.btn_download))
         }
@@ -80,13 +99,20 @@ fun ImageScreen(imageUrl: String) {
             onClick = {
                 downloadJob?.cancel()
                 downloadStatus = "Download Cancelled"
+                downloadProgress = 0 // Reset progress on cancellation
             },
             modifier = Modifier.padding(8.dp)
         ) {
             Text(text = stringResource(id = R.string.btn_cancel))
         }
-        if (downloadProgress > 0) {
-            LinearProgressIndicator(progress = downloadProgress / 100f, modifier = Modifier.fillMaxWidth().padding(8.dp))
+
+        if (downloadJob != null && downloadJob!!.isActive) {
+            LinearProgressIndicator(
+                progress = downloadProgress / 100f,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+            )
             Text(text = "Progress: $downloadProgress%", textAlign = TextAlign.Center)
         }
 
