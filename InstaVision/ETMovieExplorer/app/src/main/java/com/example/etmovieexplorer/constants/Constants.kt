@@ -6,6 +6,5 @@ class Constants {
         const val FAVOURITE_SCREEN = "favouriteScreen"
         const val IMAGE_SCREEN = "imageScreen"
         const val FAVOURITE = "favouriteMovie"
-
     }
 }

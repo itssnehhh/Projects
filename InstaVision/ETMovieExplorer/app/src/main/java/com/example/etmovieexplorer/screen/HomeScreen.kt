@@ -46,14 +46,18 @@ import com.example.etmovieexplorer.screen.Constants.LOGIN
 import com.example.etmovieexplorer.ui.theme.CustomRed
 
 @Composable
-fun HomeScreen(navHostController: NavHostController, darkTheme: Boolean, function: () -> Unit) {
+fun HomeScreen(
+    navHostController: NavHostController,
+    darkTheme: Boolean,
+    onThemeChange: () -> Unit,
+) {
     val context = LocalContext.current
     val navController = rememberNavController()
     val prefManager = remember { PrefManager(context) }
 
     Surface {
         Scaffold(
-            topBar = { HomeTopAppBar(darkTheme, function, prefManager, navHostController) },
+            topBar = { HomeTopAppBar(darkTheme, onThemeChange, prefManager, navHostController) },
             bottomBar = {
                 BottomNavigationBar(navController = navController)
             }) { paddingValues ->
@@ -118,31 +122,29 @@ fun HomeTopAppBar(
 
 @Composable
 fun NavHostContainer(navController: NavHostController, padding: PaddingValues) {
-
     NavHost(
         navController = navController,
         startDestination = MOVIE_SCREEN,
-        modifier = Modifier.padding(padding),
-        builder = {
-            composable(MOVIE_SCREEN) {
-                MovieListScreen(navController)
-            }
-            composable(FAVOURITE_SCREEN) {
-                FavouriteScreen(navController)
-            }
-            composable(
-                "movieDetails/{imdbID}",
-                arguments = listOf(navArgument("imdbID") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val imdbID = backStackEntry.arguments?.getString("imdbID") ?: ""
-                MovieDetailScreen(imdbID = imdbID,navController)
-            }
-            composable("$IMAGE_SCREEN/{id}") { navBackStack ->
-                val string = navBackStack.arguments?.getString("id")
-                ImageScreen(string!!)
-            }
+        modifier = Modifier.padding(padding)
+    ) {
+        composable(MOVIE_SCREEN) {
+            MovieListScreen(navController)
         }
-    )
+        composable(FAVOURITE_SCREEN) {
+            FavouriteScreen(navController)
+        }
+        composable(
+            "movieDetails/{imdbID}",
+            arguments = listOf(navArgument("imdbID") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val imdbID = backStackEntry.arguments?.getString("imdbID").orEmpty()
+            MovieDetailScreen(imdbID = imdbID, navController)
+        }
+        composable("$IMAGE_SCREEN/{id}") { navBackStack ->
+            val id = navBackStack.arguments?.getString("id").orEmpty()
+            ImageScreen(id)
+        }
+    }
 }
 
 @Composable

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,12 +40,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.example.etmovieexplorer.R
 import com.example.etmovieexplorer.constants.Constants.Companion.IMAGE_SCREEN
 import com.example.etmovieexplorer.model.MovieDetail
 import com.example.etmovieexplorer.network.ApiClient
 import com.example.etmovieexplorer.preferences.PrefManager
 import com.example.etmovieexplorer.ui.theme.CustomYellow
+import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -59,165 +63,180 @@ fun MovieDetailScreen(imdbID: String, navController: NavHostController) {
     }
 }
 
-
 @Composable
 fun DetailCard(imdbID: String, navController: NavHostController) {
     var movieDetails by remember { mutableStateOf<MovieDetail?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
     val context = LocalContext.current
-    val prefManager = remember {
-        PrefManager(context)
-    }
+    val prefManager = remember { PrefManager(context) }
+    val coroutineScope = rememberCoroutineScope()
+
     LaunchedEffect(imdbID) {
-        ApiClient.init().getMovieDetails(imdbID).enqueue(object : Callback<MovieDetail> {
-            override fun onResponse(call: Call<MovieDetail>, response: Response<MovieDetail>) {
-                if (response.isSuccessful) {
-                    movieDetails = response.body()
-                } else {
-                    Log.e("TAG", "Error: ${response.message()}")
-                    Toast.makeText(context, "Error: ${response.message()}", Toast.LENGTH_SHORT)
-                        .show()
-                }
-            }
-
-            override fun onFailure(call: Call<MovieDetail>, t: Throwable) {
-                Log.e("TAG", "Failure: ${t.message}")
-                Toast.makeText(context, "Failure: ${t.message}", Toast.LENGTH_SHORT).show()
-            }
-        })
+        coroutineScope.launch {
+            fetchMovieDetails(imdbID, { details ->
+                movieDetails = details
+                isLoading = false
+            }, { error ->
+                Log.e("TAG", "Error: $error")
+                Toast.makeText(context, "Error: $error", Toast.LENGTH_SHORT).show()
+                isLoading = false
+            })
+        }
     }
 
-    movieDetails?.let { movie ->
-        Column {
-            Box(modifier = Modifier.fillMaxSize()) {
-                Image(
-                    painter = rememberAsyncImagePainter(model = movie.poster),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .clickable {
-                            val encodedUrl =
-                                URLEncoder.encode(movie.poster, StandardCharsets.UTF_8.toString())
-                            navController.navigate("$IMAGE_SCREEN/$encodedUrl")
-                        }
-                        .fillMaxSize()
-                        .height(200.dp),
-                    contentScale = ContentScale.FillBounds
-                )
-                Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else {
+        movieDetails?.let { movie ->
+            Column {
+                Box(modifier = Modifier.fillMaxSize()) {
                     Image(
-                        painter = painterResource(id = R.drawable.like),
-                        contentDescription = null,
+                        painter = rememberAsyncImagePainter(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(movie.poster)
+                                .placeholder(R.drawable.bg_image)
+                                .error(R.drawable.ic_launcher_background)
+                                .build()
+                        ),
+                        contentDescription = "",
                         modifier = Modifier
-                            .offset(y = 170.dp)
-                            .size(60.dp)
-                            .padding(horizontal = 8.dp)
                             .clickable {
-                                prefManager.addToFavorites(context, movie)
-                                Toast
-                                    .makeText(context, "Added to favorites", Toast.LENGTH_SHORT)
-                                    .show()
+                                val encodedUrl = URLEncoder.encode(movie.poster, StandardCharsets.UTF_8.toString())
+                                navController.navigate("$IMAGE_SCREEN/$encodedUrl")
                             }
+                            .fillMaxSize()
+                            .height(200.dp),
+                        contentScale = ContentScale.FillBounds
                     )
-                    Image(
-                        painter = painterResource(id = R.drawable.share),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(60.dp)
-                            .padding(horizontal = 8.dp)
-                            .offset(y = 170.dp)
-                            .clickable {
-                                val shareText = "Check out ${movie.title}! \n\n${movie.plot}"
-                                val intent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_TEXT, shareText)
+                    Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                        Image(
+                            painter = painterResource(id = R.drawable.like),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .offset(y = 170.dp)
+                                .size(60.dp)
+                                .padding(horizontal = 8.dp)
+                                .clickable {
+                                    prefManager.addToFavorites(context, movie)
+                                    Toast.makeText(context, "Added to favorites", Toast.LENGTH_SHORT).show()
                                 }
-                                val shareIntent = Intent.createChooser(intent, null)
-                                context.startActivity(shareIntent)
-                            }
-                    )
+                        )
+                        Image(
+                            painter = painterResource(id = R.drawable.share),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .size(60.dp)
+                                .padding(horizontal = 8.dp)
+                                .offset(y = 170.dp)
+                                .clickable {
+                                    val shareText = "Check out ${movie.title}! \n\n${movie.plot}"
+                                    val intent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, shareText)
+                                    }
+                                    val shareIntent = Intent.createChooser(intent, null)
+                                    context.startActivity(shareIntent)
+                                }
+                        )
+                    }
                 }
-            }
-            Spacer(modifier = Modifier.height(40.dp))
-            Text(
-                color = Color.Red,
-                fontWeight = FontWeight.SemiBold,
-                text = movie.title,
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(8.dp)
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(end = 4.dp),
-                horizontalArrangement = Arrangement.End
-            ) {
+                Spacer(modifier = Modifier.height(40.dp))
                 Text(
-                    color = CustomYellow,
-                    text = "${movie.runtime},",
-                    modifier = Modifier.padding(4.dp),
-                    style = MaterialTheme.typography.titleMedium
+                    color = Color.Red,
+                    fontWeight = FontWeight.SemiBold,
+                    text = movie.title,
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(8.dp)
                 )
-                Text(
-                    color = CustomYellow,
-                    text = movie.release,
-                    modifier = Modifier.padding(vertical = 4.dp),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-            Spacer(modifier = Modifier.height(20.dp))
-            TextValue(text = "Genre :- ${movie.genre}")
-            TextValue(text = "Languages :- ${movie.language}")
-            TextValue(text = "Actor :- ${movie.actor}")
-            TextValue(text = "Writer :- ${movie.writer}")
-            TextValue(text = "Director :- ${movie.director}")
-            TextValue(text = "Country :- ${movie.country}")
-            TextValue(text = "Awards :- ${movie.awards}")
 
-            movie.ratings.let { ratings ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(4.dp)
+                        .padding(end = 4.dp),
+                    horizontalArrangement = Arrangement.End
                 ) {
-                    if (ratings.isNotEmpty()) {
-                        ratings.forEach { rating ->
-                            Column(
-                                modifier = Modifier
-                                    .padding(4.dp)
-                                    .weight(1f)
-                                    .border(1.dp, Color.LightGray),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    style = MaterialTheme.typography.titleMedium,
-                                    text = rating.source,
-                                    textAlign = TextAlign.Center,
-                                    minLines = 2,
-                                    modifier = Modifier.padding(
-                                        start = 4.dp,
-                                        end = 4.dp,
-                                        top = 4.dp
+                    Text(
+                        color = CustomYellow,
+                        text = "${movie.runtime},",
+                        modifier = Modifier.padding(4.dp),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        color = CustomYellow,
+                        text = movie.release,
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+                TextValue(text = "Genre :- ${movie.genre}")
+                TextValue(text = "Languages :- ${movie.language}")
+                TextValue(text = "Actor :- ${movie.actor}")
+                TextValue(text = "Writer :- ${movie.writer}")
+                TextValue(text = "Director :- ${movie.director}")
+                TextValue(text = "Country :- ${movie.country}")
+                TextValue(text = "Awards :- ${movie.awards}")
+
+                movie.ratings.let { ratings ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp)
+                    ) {
+                        if (ratings.isNotEmpty()) {
+                            ratings.forEach { rating ->
+                                Column(
+                                    modifier = Modifier
+                                        .padding(4.dp)
+                                        .weight(1f)
+                                        .border(1.dp, Color.LightGray),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        style = MaterialTheme.typography.titleMedium,
+                                        text = rating.source,
+                                        textAlign = TextAlign.Center,
+                                        minLines = 2,
+                                        modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp)
                                     )
-                                )
-                                Text(
-                                    style = MaterialTheme.typography.titleMedium,
-                                    text = rating.value,
-                                    modifier = Modifier.padding(
-                                        start = 4.dp,
-                                        end = 4.dp,
-                                        bottom = 4.dp
+                                    Text(
+                                        style = MaterialTheme.typography.titleMedium,
+                                        text = rating.value,
+                                        modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 4.dp)
                                     )
-                                )
+                                }
                             }
                         }
                     }
                 }
+                TextValue(text = "IMDB Rating :- ${movie.imdbRating}")
+                TextValue(text = "IMDB Id :- ${movie.imdbId}")
             }
-            TextValue(text = "IMDB Rating :- ${movie.imdbRating}")
-            TextValue(text = "IMDB Id :- ${movie.imdbId}")
         }
     }
+}
+
+private fun fetchMovieDetails(
+    imdbID: String,
+    onSuccess: (MovieDetail) -> Unit,
+    onError: (String) -> Unit
+) {
+    ApiClient.init().getMovieDetails(imdbID).enqueue(object : Callback<MovieDetail> {
+        override fun onResponse(call: Call<MovieDetail>, response: Response<MovieDetail>) {
+            if (response.isSuccessful) {
+                response.body()?.let { onSuccess(it) } ?: onError("No data available")
+            } else {
+                onError(response.message())
+            }
+        }
+
+        override fun onFailure(call: Call<MovieDetail>, t: Throwable) {
+            onError(t.message ?: "Unknown error")
+        }
+    })
 }
 
 @Composable

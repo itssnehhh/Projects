@@ -18,7 +18,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,24 +38,35 @@ import com.example.etmovieexplorer.preferences.PrefManager
 fun FavouriteScreen(navController: NavHostController) {
     val context = LocalContext.current
     val prefManager = remember { PrefManager(context) }
-    val favoriteMovies = prefManager.getFavoriteMovies(context)
+    var favoriteMovies by remember { mutableStateOf(prefManager.getFavoriteMovies(context)) }
 
     LazyColumn {
         items(favoriteMovies) { movie ->
-            FavouriteMovieItem(movie = movie, onRemoveClicked = { imdbID ->
-                prefManager.removeFromFavorites(context, imdbID)
-            })
+            FavouriteMovieItem(
+                movie = movie,
+                onRemoveClicked = { imdbID ->
+                    prefManager.removeFromFavorites(context, imdbID)
+                    favoriteMovies = prefManager.getFavoriteMovies(context) // Update the list
+                },
+                onMovieClicked = {
+                    navController.navigate("movieDetails/${movie.imdbID}")
+                }
+            )
         }
     }
 }
 
 @Composable
-fun FavouriteMovieItem(movie: FavoriteMovie, onRemoveClicked: (String) -> Unit) {
+fun FavouriteMovieItem(
+    movie: FavoriteMovie,
+    onRemoveClicked: (String) -> Unit,
+    onMovieClicked: () -> Unit
+) {
     Card(
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth()
-            .clickable { /* Navigate to movie detail screen */ },
+            .clickable { onMovieClicked() },
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Row(
@@ -61,16 +75,16 @@ fun FavouriteMovieItem(movie: FavoriteMovie, onRemoveClicked: (String) -> Unit) 
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Display movie poster
             Image(
                 painter = rememberAsyncImagePainter(
                     ImageRequest.Builder(LocalContext.current).data(data = movie.posterUrl)
-                        .apply(block = fun ImageRequest.Builder.() {
+                        .apply {
                             crossfade(true)
                             placeholder(R.drawable.bg_image)
-                        }).build()
+                            error(R.drawable.ic_launcher_background)
+                        }.build()
                 ),
-                contentDescription = null,
+                contentDescription = "",
                 modifier = Modifier
                     .size(80.dp)
                     .clip(RoundedCornerShape(8.dp))
@@ -79,17 +93,18 @@ fun FavouriteMovieItem(movie: FavoriteMovie, onRemoveClicked: (String) -> Unit) 
             Text(
                 text = movie.title,
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(start = 16.dp)
+                modifier = Modifier
+                    .padding(start = 16.dp)
+                    .weight(1f) // Make the text take the available space
             )
 
-            // Add a button to remove from favorites
             IconButton(
-                onClick = { onRemoveClicked.invoke(movie.imdbID) },
+                onClick = { onRemoveClicked(movie.imdbID) },
                 modifier = Modifier.align(Alignment.CenterVertically)
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Remove from favorites",
+                    contentDescription = "",
                     tint = MaterialTheme.colorScheme.primary
                 )
             }

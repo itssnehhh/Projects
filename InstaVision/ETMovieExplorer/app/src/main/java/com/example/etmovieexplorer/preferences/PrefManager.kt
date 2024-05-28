@@ -75,11 +75,6 @@ class PrefManager(context: Context) {
         return gson.fromJson(json, type) ?: emptyList()
     }
 
-    fun isFavorite(context: Context, imdbID: String): Boolean {
-        val favoriteMovies = getFavoriteMovies(context)
-        return favoriteMovies.any { it.imdbID == imdbID }
-    }
-
     fun removeFromFavorites(context: Context, imdbID: String) {
         val gson = Gson()
         val favoriteMovies = getFavoriteMovies(context).toMutableList()
