@@ -1,125 +1,224 @@
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.TweenSpec
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.MaterialTheme
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
+  implementation("androidx.datastore:datastore-preferences:1.0.0")
 
+1. Preferences
+package com.example.cpdevelopauthentify.preferences
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import com.example.cpdevelopauthentify.model.User
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+object UserPreferences {
+
+    private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_prefs")
+
+    private val NAME_KEY = stringPreferencesKey("name")
+    private val EMAIL_KEY = stringPreferencesKey("email")
+    private val PASSWORD_KEY = stringPreferencesKey("password")
+    private val ADDRESS_KEY = stringPreferencesKey("address")
+    private val DOB_KEY = stringPreferencesKey("dob")
+    private val BLOOD_GROUP_KEY = stringPreferencesKey("blood_group")
+    private val GENDER_KEY = stringPreferencesKey("gender")
+    private val PROFILE_PICTURE_KEY = stringPreferencesKey("profile_picture")
+
+    suspend fun saveUser(context: Context, user: User) {
+        context.dataStore.edit { preferences ->
+            preferences[NAME_KEY] = user.name
+            preferences[EMAIL_KEY] = user.email
+            preferences[PASSWORD_KEY] = user.password
+            preferences[ADDRESS_KEY] = user.address
+            preferences[DOB_KEY] = user.dob
+            preferences[BLOOD_GROUP_KEY] = user.bloodGroup
+            preferences[GENDER_KEY] = user.gender
+            preferences[PROFILE_PICTURE_KEY] = user.profilePicture ?: ""
+        }
+    }
+
+    fun userFlow(context: Context): Flow<User?> = context.dataStore.data.map { preferences ->
+        val name = preferences[NAME_KEY] ?: return@map null
+        val email = preferences[EMAIL_KEY] ?: return@map null
+        val password = preferences[PASSWORD_KEY] ?: return@map null
+        val address = preferences[ADDRESS_KEY] ?: return@map null
+        val dob = preferences[DOB_KEY] ?: return@map null
+        val bloodGroup = preferences[BLOOD_GROUP_KEY] ?: return@map null
+        val gender = preferences[GENDER_KEY] ?: return@map null
+        val profilePicture = preferences[PROFILE_PICTURE_KEY] ?: ""
+        User(name, email, password, address, dob, bloodGroup, gender, profilePicture)
+    }
+
+    suspend fun clearUser(context: Context) {
+        context.dataStore.edit { it.clear() }
+    }
+}
+
+2. Main Activity
+class MainActivity : ComponentActivity() {
+    private val userPreferences by lazy { com.example.cpdevelopauthentify.preferences.UserPreferences }
+    private var user by mutableStateOf<User?>(null)
+    private var showLogin by mutableStateOf(false)
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            val context = LocalContext.current
+
+            // Load user and theme preferences
+            LaunchedEffect(context) {
+                user = userPreferences.userFlow(context).first()
+            }
+
+            if (user == null) {
+                showLogin = false
+                RegistrationScreen(onRegister = {
+                    runBlocking {
+                        userPreferences.saveUser(context, it)
+                        user = it
+                    }
+                })
+            } else if (showLogin) {
+                LoginScreen(onLogin = { email, password ->
+                    if (user?.email == email && user?.password == password) {
+                        showLogin = false
+                    } else {
+                        // Show error message
+                    }
+                })
+            } else {
+                HomeScreen(user = user!!, onLogout = {
+                    user = null
+                    showLogin = true
+                }, onDeleteUser = {
+                    runBlocking {
+                        userPreferences.clearUser(context)
+                        user = null
+                        showLogin = true
+                    }
+                })
+            }
+        }
+    }
+}
+
+
+3. Signup
 @Composable
-fun GalleryScreen(onItemClick: (Int) -> Unit) {
-    // List of image IDs
-    val images = listOf(
-        R.drawable.image1,
-        R.drawable.image2,
-        R.drawable.image3
+fun RegistrationScreen(onRegister: (User) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var address by remember { mutableStateOf("") }
+    var dob by remember { mutableStateOf("") }
+    var bloodGroup by remember { mutableStateOf("") }
+    var gender by remember { mutableStateOf("") }
+    var profilePicture by remember { mutableStateOf<String?>(null) }
+
+    val calendar = Calendar.getInstance()
+    val datePickerDialog = DatePickerDialog(
+        LocalContext.current,
+        { _, year, month, dayOfMonth ->
+            dob = "$year-${month + 1}-$dayOfMonth"
+        },
+        calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)
     )
 
+    val bloodGroups = listOf("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
+
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+        modifier = Modifier.padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        images.forEachIndexed { index, image ->
-            ImageItem(
-                image = image,
-                onClick = { onItemClick(index) }
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+        TextField(value = name, onValueChange = { name = it }, label = { Text("Name") })
+        TextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
+        TextField(value = password, onValueChange = { password = it }, label = { Text("Password") })
+        TextField(value = address, onValueChange = { address = it }, label = { Text("Address") })
+
+        Button(onClick = { datePickerDialog.show() }) {
+            Text(if (dob.isEmpty()) "Select DOB" else "DOB: $dob")
         }
-    }
-}
 
-@Composable
-fun ImageItem(image: Int, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(120.dp)
-            .clickable(onClick = onClick)
-            .background(color = Color.LightGray, shape = CircleShape)
-    ) {
-        Image(
-            painter = painterResource(id = image),
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    // Apply animations here
-                },
-            contentScale = ContentScale.Crop
-        )
-    }
-}
-
-@Composable
-fun DetailScreen(image: Int, onBackPressed: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(color = MaterialTheme.colors.background)
-    ) {
-        Image(
-            painter = painterResource(id = image),
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            contentScale = ContentScale.FillBounds
-        )
-
-        // Back button
-        IconButton(
-            onClick = onBackPressed,
-            modifier = Modifier
-                .padding(16.dp)
-                .align(Alignment.TopStart)
+        DropdownMenu(
+            expanded = bloodGroup.isNotEmpty(),
+            onDismissRequest = { /* Handle dismiss */ }
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_back),
-                contentDescription = "Back"
+            bloodGroups.forEach { group ->
+                DropdownMenuItem(onClick = { bloodGroup = group }, text = { group.forEach { it } })
+            }
+        }
+
+        Text("Selected Blood Group: $bloodGroup")
+
+        Row {
+            Checkbox(
+                checked = gender == "Male",
+                onCheckedChange = { if (it) gender = "Male" }
             )
+            Text("Male")
+            Checkbox(
+                checked = gender == "Female",
+                onCheckedChange = { if (it) gender = "Female" }
+            )
+            Text("Female")
+        }
+
+        // Profile Picture Upload (extra feature)
+        Button(onClick = { /* Handle Profile Picture Upload */ }) {
+            Text("Upload Profile Picture")
+        }
+
+        Button(onClick = {
+            val user = User(name, email, password, address, dob, bloodGroup, gender, profilePicture)
+            onRegister(user)
+        }) {
+            Text("Register")
         }
     }
 }
 
+4. Login
 @Composable
-fun SharedElementTransitionExample() {
-    var selectedItemIndex by remember { mutableStateOf(-1) }
+fun LoginScreen(onLogin: (String, String) -> Unit) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
 
-    // Animatable to track the scale of the selected image during transition
-    val scale = remember { Animatable(0f) }
-
-    if (selectedItemIndex != -1) {
-        val targetScale = remember { 1f }
-        LaunchedEffect(key1 = selectedItemIndex) {
-            scale.animateTo(
-                targetValue = targetScale,
-                animationSpec = TweenSpec(durationMillis = 500)
-            )
+    Column(
+        modifier = Modifier.padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        TextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
+        TextField(value = password, onValueChange = { password = it }, label = { Text("Password") })
+        Button(onClick = { onLogin(email, password) }) {
+            Text("Login")
         }
     }
+}
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        GalleryScreen { index ->
-            selectedItemIndex = index
+
+5. Home
+@Composable
+fun HomeScreen(user: User, onLogout: () -> Unit, onDeleteUser: () -> Unit) {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Name: ${user.name}")
+        Text("Email: ${user.email}")
+        Text("Address: ${user.address}")
+        Text("DOB: ${user.dob}")
+        Text("Blood Group: ${user.bloodGroup}")
+        Text("Gender: ${user.gender}")
+        user.profilePicture?.let {
+            // Display profile picture
         }
-
-        if (selectedItemIndex != -1) {
-            DetailScreen(
-                image = R.drawable.image1, // Replace with actual image resource
-                onBackPressed = { selectedItemIndex = -1 }
-            )
+        Button(onClick = onLogout) {
+            Text("Logout")
+        }
+        Button(onClick = onDeleteUser) {
+            Text("Delete User")
         }
     }
 }
