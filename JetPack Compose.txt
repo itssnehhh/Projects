@@ -1,938 +1,317 @@
-  implementation("androidx.datastore:datastore-preferences:1.0.0")
+1. Dao
+@Dao
+interface EmployeeDao {
 
-1. Preferences
-package com.example.cpdevelopauthentify.preferences
+    @Insert
+    suspend fun insert(employee: Employee)
 
-import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
-import com.example.cpdevelopauthentify.model.User
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+    @Query("SELECT * FROM employee")
+    fun getAllEmployees(): Flow<List<Employee>>
+}
 
-object UserPreferences {
+2. Database
+@Database(entities = [Employee::class], version = 1, exportSchema = false)
+abstract class EmployeeDatabase : RoomDatabase() {
+    abstract fun employeeDao(): EmployeeDao
 
-    private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_prefs")
+    companion object {
+        @Volatile
+        private var INSTANCE: EmployeeDatabase? = null
 
-    private val NAME_KEY = stringPreferencesKey("name")
-    private val EMAIL_KEY = stringPreferencesKey("email")
-    private val PASSWORD_KEY = stringPreferencesKey("password")
-    private val ADDRESS_KEY = stringPreferencesKey("address")
-    private val DOB_KEY = stringPreferencesKey("dob")
-    private val BLOOD_GROUP_KEY = stringPreferencesKey("blood_group")
-    private val GENDER_KEY = stringPreferencesKey("gender")
-    private val PROFILE_PICTURE_KEY = stringPreferencesKey("profile_picture")
-    private val IS_LOGGED_IN_KEY = booleanPreferencesKey("is_logged_in")
-
-    suspend fun saveUser(context: Context, user: User) {
-        context.dataStore.edit { preferences ->
-            preferences[NAME_KEY] = user.name
-            preferences[EMAIL_KEY] = user.email
-            preferences[PASSWORD_KEY] = user.password
-            preferences[ADDRESS_KEY] = user.address
-            preferences[DOB_KEY] = user.dob
-            preferences[BLOOD_GROUP_KEY] = user.bloodGroup
-            preferences[GENDER_KEY] = user.gender
-            preferences[PROFILE_PICTURE_KEY] = user.profilePicture ?: ""
-            // Do not set is_logged_in here
-        }
-    }
-
-    fun userFlow(context: Context): Flow<User?> = context.dataStore.data.map { preferences ->
-        val name = preferences[NAME_KEY] ?: return@map null
-        val email = preferences[EMAIL_KEY] ?: return@map null
-        val password = preferences[PASSWORD_KEY] ?: return@map null
-        val address = preferences[ADDRESS_KEY] ?: return@map null
-        val dob = preferences[DOB_KEY] ?: return@map null
-        val bloodGroup = preferences[BLOOD_GROUP_KEY] ?: return@map null
-        val gender = preferences[GENDER_KEY] ?: return@map null
-        val profilePicture = preferences[PROFILE_PICTURE_KEY] ?: ""
-        User(name, email, password, address, dob, bloodGroup, gender, profilePicture)
-    }
-
-    fun isLoggedInFlow(context: Context): Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[IS_LOGGED_IN_KEY] ?: false
-    }
-
-    suspend fun setLoggedIn(context: Context, loggedIn: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[IS_LOGGED_IN_KEY] = loggedIn
-        }
-    }
-
-    suspend fun clearUser(context: Context) {
-        context.dataStore.edit {
-            it.clear()
+        fun getDatabase(context: Context): EmployeeDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
+                    EmployeeDatabase::class.java,
+                    "employee_database"
+                ).build()
+                INSTANCE = instance
+                instance
+            }
         }
     }
 }
 
+3. Repository
+class EmployeeRepository(private val employeeDao: EmployeeDao) {
 
-2. Main Activity
-package com.example.cpdevelopauthentify
+    fun getAllEmployees(): Flow<List<Employee>> {
+        return employeeDao.getAllEmployees()
+    }
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.example.cpdevelopauthentify.preferences.UserPreferences
-import com.example.cpdevelopauthentify.registerScreen.SignUpScreen1
-import com.example.cpdevelopauthentify.registerScreen.SignUpScreen2
-
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            MainScreen()
-        }
+    suspend fun insert(employee: Employee) {
+        employeeDao.insert(employee)
     }
 }
 
+4. ADD EMployee SCreen
 @Composable
-fun MainScreen() {
-    val context = LocalContext.current
-    val navController = rememberNavController()
-    val isLoggedIn = UserPreferences.isLoggedInFlow(context).collectAsState(initial = false)
+fun AddEmployeeScreen(
+    viewModel: EmployeeViewModel = viewModel(),
+    navHostController: NavHostController,
+) {
+    val name = rememberSaveable { mutableStateOf("") }
+    val email = rememberSaveable { mutableStateOf("") }
+    val contactInfo = rememberSaveable { mutableStateOf("") }
+    val jobTitle = rememberSaveable { mutableStateOf("") }
+    val address = rememberSaveable { mutableStateOf("") }
+    val dob = rememberSaveable { mutableStateOf("") }
+    val bloodGroup = rememberSaveable { mutableStateOf("") }
 
-    LaunchedEffect(isLoggedIn.value) {
-        val startDestination = if (isLoggedIn.value) "home_screen" else "signup_screen1"
-        navController.navigate(startDestination) {
-            popUpTo(navController.graph.startDestinationId) { inclusive = true }
-        }
-    }
-    NavHostContainer(navController)
-}
-
-@Composable
-fun NavHostContainer(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = "signup_screen1") {
-        composable("home_screen") {
-            HomeScreen(navController)
-        }
-        composable("signup_screen1") {
-            SignUpScreen1(navController)
-        }
-        composable("signup_screen2") {
-            SignUpScreen2(navController)
-        }
-        composable("login_screen") {
-            LoginScreen(navController)
+    Column(modifier = Modifier.padding(16.dp)) {
+        OutlinedTextField(
+            value = name.value,
+            onValueChange = { name.value = it },
+            label = { Text("Name") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        )
+        OutlinedTextField(
+            value = email.value,
+            onValueChange = { email.value = it },
+            label = { Text("Email") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        )
+        OutlinedTextField(
+            value = contactInfo.value,
+            onValueChange = { contactInfo.value = it },
+            label = { Text("Contact Info") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        )
+        OutlinedTextField(
+            value = jobTitle.value,
+            onValueChange = { jobTitle.value = it },
+            label = { Text("Job Title") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        )
+        OutlinedTextField(
+            value = address.value,
+            onValueChange = { address.value = it },
+            label = { Text("Address") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        )
+        OutlinedTextField(
+            value = dob.value,
+            onValueChange = { dob.value = it },
+            label = { Text("Date of Birth") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        )
+        OutlinedTextField(
+            value = bloodGroup.value,
+            onValueChange = { bloodGroup.value = it },
+            label = { Text("Blood Group") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        )
+        Button(
+            onClick = {
+                viewModel.name = name.value
+                viewModel.email = email.value
+                viewModel.contactInfo = contactInfo.value
+                viewModel.jobTitle = jobTitle.value
+                viewModel.address = address.value
+                viewModel.dob = dob.value
+                viewModel.bloodGroup = bloodGroup.value
+                viewModel.saveEmployee()
+                navHostController.navigate(EMPLOYEE_SCREEN)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Text("Save Employee")
         }
     }
 }
 
 @Preview
 @Composable
-fun MainScreenPreview() {
-    MainScreen()
-}
-
-
-3. Signup 1
-package com.example.cpdevelopauthentify.registerScreen
-
-import android.app.DatePickerDialog
-import android.net.Uri
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController
-import coil.compose.rememberImagePainter
-import com.example.cpdevelopauthentify.R
-import java.util.Calendar
-
-@Composable
-fun SignUpScreen1(navController: NavHostController) {
-    val context = LocalContext.current
-    val name = remember { mutableStateOf("") }
-    val email = remember { mutableStateOf("") }
-    val password = remember { mutableStateOf("") }
-    val address = remember { mutableStateOf("") }
-    val dob = remember { mutableStateOf("") }
-    val profilePicture = remember { mutableStateOf("") }
-
-    val calendar = Calendar.getInstance()
-    val datePickerDialog = DatePickerDialog(
-        context,
-        { _, year, month, dayOfMonth ->
-            dob.value = "$dayOfMonth/${month + 1}/$year"
-        },
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH)
+fun AddEmployeeCardPreview() {
+    AddEmployeeScreen(
+        EmployeeViewModel(Application()),
+        NavHostController(LocalContext.current)
     )
+}
 
-    val nameError = remember { mutableStateOf("") }
-    val emailError = remember { mutableStateOf("") }
-    val passwordError = remember { mutableStateOf("") }
-    val addressError = remember { mutableStateOf("") }
-    val dobError = remember { mutableStateOf("") }
+5. ViewModel EMployee
+class EmployeeViewModel(application: Application) : AndroidViewModel(application) {
+    private val repository: EmployeeRepository
 
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-        onResult = { uri: Uri? ->
-            uri?.let {
-                profilePicture.value = it.toString()
-            }
-        }
-    )
+    val employees: StateFlow<List<Employee>>
 
-    LazyColumn(
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        item {
-            OutlinedTextField(
-                value = name.value,
-                onValueChange = { name.value = it },
-                label = { Text(text = "Full Name") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .background(Color.White),
-                isError = nameError.value.isNotEmpty()
+    var name by mutableStateOf("")
+    var email by mutableStateOf("")
+    var contactInfo by mutableStateOf("")
+    var jobTitle by mutableStateOf("")
+    var address by mutableStateOf("")
+    var dob by mutableStateOf("")
+    var bloodGroup by mutableStateOf("")
+
+    init {
+        val employeeDao = EmployeeDatabase.getDatabase(application).employeeDao()
+        repository = EmployeeRepository(employeeDao)
+        employees = repository.getAllEmployees().stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    }
+
+    fun saveEmployee() {
+        viewModelScope.launch {
+            val employee = Employee(
+                name = name,
+                email = email,
+                contactInfo = contactInfo,
+                jobTitle = jobTitle,
+                address = address,
+                dob = dob,
+                bloodGroup = bloodGroup
             )
-            if (nameError.value.isNotEmpty()) {
-                Text(
-                    text = nameError.value,
-                    color = Color.Red,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(start = 16.dp)
-                )
-            }
-
-            OutlinedTextField(
-                value = email.value,
-                onValueChange = { email.value = it },
-                label = { Text(text = "Email address") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .background(Color.White),
-                isError = emailError.value.isNotEmpty()
-            )
-            if (emailError.value.isNotEmpty()) {
-                Text(
-                    text = nameError.value,
-                    color = Color.Red,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(start = 16.dp)
-                )
-            }
-
-            OutlinedTextField(
-                value = password.value,
-                onValueChange = { password.value = it },
-                label = { Text(text = "Password") },
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .background(Color.White),
-                isError = passwordError.value.isNotEmpty()
-            )
-            if (passwordError.value.isNotEmpty()) {
-                Text(
-                    text = nameError.value,
-                    color = Color.Red,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(start = 16.dp)
-                )
-            }
-
-            OutlinedTextField(
-                value = address.value,
-                onValueChange = { address.value = it },
-                label = { Text(text = "Address") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .background(Color.White),
-                isError = addressError.value.isNotEmpty()
-            )
-            if (addressError.value.isNotEmpty()) {
-                Text(
-                    text = nameError.value,
-                    color = Color.Red,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(start = 16.dp)
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clickable { datePickerDialog.show() }
-            ) {
-                OutlinedTextField(
-                    value = dob.value,
-                    onValueChange = { dob.value = it },
-                    label = { Text(text = "Date of Birth") },
-                    enabled = false,
-                    trailingIcon = {
-                        Icon(Icons.Filled.DateRange, contentDescription = "Select date")
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White),
-                    isError = dobError.value.isNotEmpty()
-                )
-                if (dobError.value.isNotEmpty()) {
-                    Text(
-                        text = nameError.value,
-                        color = Color.Red,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clickable { galleryLauncher.launch("image/*") }
-            ) {
-                if (profilePicture.value.isNotEmpty()) {
-                    Image(
-                        painter = rememberImagePainter(profilePicture.value),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(128.dp)
-                            .background(Color.Gray, shape = CircleShape)
-                    )
-                } else {
-                    Image(
-                        painter = rememberImagePainter(R.drawable.ic_launcher_background),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(128.dp)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = {
-                    // Navigate only if all fields are valid
-                    if (name.value.isNotEmpty() && email.value.isNotEmpty() && password.value.isNotEmpty()
-                        && address.value.isNotEmpty() && dob.value.isNotEmpty()
-                    ) {
-                        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email.value).matches()) {
-                            Toast.makeText(
-                                context,
-                                "Please enter valid email address",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        } else if (password.value.length < 8 || !password.value.any { it.isDigit() } || !password.value.any { it.isLetter() }) {
-                            Toast.makeText(
-                                context,
-                                "Password must be at least 8 characters, including letters and numbers",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        } else {
-                            navController.currentBackStackEntry?.savedStateHandle?.set(
-                                "name",
-                                name.value
-                            )
-                            navController.currentBackStackEntry?.savedStateHandle?.set(
-                                "email",
-                                email.value
-                            )
-                            navController.currentBackStackEntry?.savedStateHandle?.set(
-                                "password",
-                                password.value
-                            )
-                            navController.currentBackStackEntry?.savedStateHandle?.set(
-                                "address",
-                                address.value
-                            )
-                            navController.currentBackStackEntry?.savedStateHandle?.set(
-                                "dob",
-                                dob.value
-                            )
-                            navController.currentBackStackEntry?.savedStateHandle?.set(
-                                "profilePicture",
-                                profilePicture.value
-                            )
-                            navController.navigate("signup_screen2")
-                        }
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(Color(0xFF3BB3E9)),
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth()
-            ) {
-                Text(text = "Next")
-            }
+            repository.insert(employee)
         }
     }
 }
 
-@Preview
-@Composable
-fun SignUpScreen1Preview() {
-    SignUpScreen1(navController = NavHostController(LocalContext.current))
-}
-
-Sign Up 2
-package com.example.cpdevelopauthentify.registerScreen
-
-import android.widget.Toast
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
-import com.example.cpdevelopauthentify.model.User
-import com.example.cpdevelopauthentify.preferences.UserPreferences
-import kotlinx.coroutines.launch
-
-@Composable
-fun SignUpScreen2(navController: NavHostController) {
-    val bloodGroup = remember { mutableStateOf("") }
-    val gender = remember { mutableStateOf("") }
-    val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
-
-    // Retrieve the individual user attributes from the previous screen
-    val previousBackStackEntry = navController.previousBackStackEntry
-    val name = previousBackStackEntry?.savedStateHandle?.get<String>("name") ?: ""
-    val email = previousBackStackEntry?.savedStateHandle?.get<String>("email") ?: ""
-    val password = previousBackStackEntry?.savedStateHandle?.get<String>("password") ?: ""
-    val address = previousBackStackEntry?.savedStateHandle?.get<String>("address") ?: ""
-    val dob = previousBackStackEntry?.savedStateHandle?.get<String>("dob") ?: ""
-    val profilePicture =
-        previousBackStackEntry?.savedStateHandle?.get<String>("profilePicture") ?: ""
-
-    LazyColumn(
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        item {
-            OutlinedTextField(
-                value = bloodGroup.value,
-                onValueChange = { bloodGroup.value = it },
-                label = { Text(text = "Blood Group") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .background(Color.White)
-            )
-
-            OutlinedTextField(
-                value = gender.value,
-                onValueChange = { gender.value = it },
-                label = { Text(text = "Gender") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .background(Color.White)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = {
-                    if (bloodGroup.value.isEmpty() || gender.value.isEmpty()) {
-                        Toast.makeText(
-                            context,
-                            "Please enter all required details",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    } else {
-                        val updatedUser = User(
-                            name = name,
-                            email = email,
-                            password = password,
-                            address = address,
-                            dob = dob,
-                            bloodGroup = bloodGroup.value,
-                            gender = gender.value,
-                            profilePicture = profilePicture
-                        )
-                        coroutineScope.launch {
-                            UserPreferences.saveUser(context, updatedUser)
-                            navController.navigate("login_screen") {
-                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                            }
-                        }
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(Color(0xFF3BB3E9)),
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth()
-            ) {
-                Text(text = "Complete Sign Up")
-            }
-        }
-    }
-}
-
-
-4. Login
-package com.example.cpdevelopauthentify
-
-import android.widget.Toast
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
-import com.example.cpdevelopauthentify.preferences.UserPreferences
-import kotlinx.coroutines.launch
-
-@Composable
-fun LoginScreen(navController: NavHostController) {
-
-    var email by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-
-    LazyColumn(
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        item {
-            OutlinedTextField(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .background(Color.White),
-                value = email,
-                onValueChange = { email = it },
-                label = { Text(text = "Email address") })
-            OutlinedTextField(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .background(Color.White),
-                value = password,
-                onValueChange = { password = it },
-                label = { Text(text = "Password") })
-
-            Text(
-                textAlign = TextAlign.End,
-                text = "Forgot Password ?",
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(),
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        UserPreferences.userFlow(context).collect { user ->
-                            if (user != null && user.email == email && user.password == password) {
-                                UserPreferences.saveUser(context, user)
-                                navController.navigate("home_screen") {
-                                    popUpTo("login_screen") { inclusive = true }
-                                }
-                            } else {
-                                // Email not found or incorrect, show error
-                                Toast.makeText(
-                                    context,
-                                    "Invalid email or password",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        }
-                    }
-
-//                    val user = UserPreferences.userFlow(context).collectAsState(initial = null).value
-//                    if (user != null && user.email == email && user.password == password) {
-//                        UserPreferences.setLoggedIn(context, true)
-//                        navController.navigate("home_screen") {
-//                            popUpTo(navController.graph.startDestinationId) { inclusive = true }
-//                        }
-//                    } else {
-//                        Toast.makeText(context, "Invalid email or password", Toast.LENGTH_SHORT).show()
-//                    }
-                },
-                colors = ButtonDefaults.buttonColors(Color(0xFF3BB3E9)),
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth()
-            ) {
-                Text(text = "Login")
-            }
-            Spacer(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp)
-            )
-
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth()
-            ) {
-                Text(
-                    text = "Don't have an account ?",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier
-                        .padding(4.dp)
-                )
-                TextButton(onClick = { navController.navigate("signup_screen1") }) {
-                    Text(
-                        fontWeight = FontWeight.Bold,
-                        text = "SignUp",
-                        color = Color(0xFF3BB3E9),
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Preview
-@Composable
-fun LoginScreenPreview() {
-    LoginScreen(navController = NavHostController(LocalContext.current))
-}
-
-5. Home
-package com.example.cpdevelopauthentify
-
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
-import coil.compose.rememberAsyncImagePainter
-import com.example.cpdevelopauthentify.preferences.UserPreferences
-import kotlinx.coroutines.launch
-
+6. Employee Screen
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavHostController) {
-    val context = LocalContext.current
-    val userFlow = UserPreferences.userFlow(context)
-    val user by userFlow.collectAsState(initial = null)
-    val coroutineScope = rememberCoroutineScope()
-    var expanded by remember { mutableStateOf(false) }
+fun EmployeeScreen(navController: NavHostController) {
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .wrapContentSize(Alignment.TopEnd)
-    ) {
-        DropdownMenu(
-            modifier = Modifier.background(Color.White),
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            DropdownMenuItem(
-                modifier = Modifier.border(1.dp, Color.LightGray),
-                trailingIcon = {
-                    Image(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = ""
-                    )
-                },
-                text = { Text("Delete\nAccount") },
-                onClick = {
-                    coroutineScope.launch {
-                        UserPreferences.clearUser(context)
-                        navController.navigate("signup_screen1") {
-                            popUpTo("home_screen") { inclusive = true }
-                        }
-                    }
-                }
-            )
-            DropdownMenuItem(
-                modifier = Modifier.border(1.dp, Color.LightGray),
-                trailingIcon = {
-                    Image(
-                        imageVector = Icons.Filled.ExitToApp,
-                        contentDescription = ""
-                    )
-                },
-                text = { Text("Logout") },
-                onClick = {
-                    coroutineScope.launch {
-                        navController.navigate("login_screen") {
-                            popUpTo("home_screen") { inclusive = true }
-                        }
-                    }
-                }
-            )
-        }
-    }
+    val viewModel: EmployeeViewModel = viewModel()
+    val employees by viewModel.employees.collectAsState()
+
 
     Scaffold(
         topBar = {
             TopAppBar(
-                actions = {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "",
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .clickable {
-                                expanded = !expanded
-                            })
-                },
+                colors = TopAppBarDefaults.topAppBarColors(Color(0xFF854EE6)),
                 title = {
                     Text(
-                        text = "Home",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        color = Color.White,
+                        text = stringResource(R.string.employee_list),
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF3BB3E9))
+                }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { navController.navigate(ADD_EMPLOYEE_SCREEN) },
+                modifier = Modifier.padding(16.dp),
+                containerColor = Color(0xFF6F41C0)
+            ) {
+                Icon(imageVector = Icons.Default.Add, contentDescription = "")
+            }
         }
-    ) { paddingValues ->
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(it)
+                .background(MaterialTheme.colorScheme.onSurface)
+        ) {
 
-        Box {
+        }
+    }
+
+}
+
+@Composable
+fun EmployeeCard(){
+
+}
+
+
+@Preview
+@Composable
+fun EmployeeScreenPreview() {
+    EmployeeScreen(navController = NavHostController(LocalContext.current))
+}
+
+
+7. Notification Screen
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NotificationScreen(viewModel: NotificationViewModel) {
+    val notifications by viewModel.notifications.observeAsState(emptyList())
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(Color(0xFF854EE6)),
+                title = {
+                    Text(
+                        color = Color.White,
+                        text = stringResource(R.string.notification_screen),
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                })
+        }
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(it)
+                .background(MaterialTheme.colorScheme.onSurface)
+        ) {
+            items(notifications) { notification ->
+                NotificationCard(
+                    type = notification.type,
+                    title = notification.title,
+                    notification = notification.message
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun NotificationCard(type: String, title: String, notification: String) {
+    Card(
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(Color(0xFFBC9CF5)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp, horizontal = 8.dp)
+            .border(1.dp, Color.Black, CardDefaults.shape)
+    ) {
+        Row(
+            modifier = Modifier.padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Image(
-                painter = painterResource(id = R.drawable.image),
+                painter = painterResource(id = R.drawable.notifications),
                 contentDescription = "",
                 modifier = Modifier
-                    .fillMaxSize()
-                    .alpha(0.1f),
-                contentScale = ContentScale.Crop
+                    .size(32.dp)
+                    .clip(CircleShape)
             )
-        }
-        LazyColumn(modifier = Modifier.padding(paddingValues)) {
-            item {
-                user?.let { user ->
-                    Image(
-                        painter = if (user.profilePicture != null) {
-                            rememberAsyncImagePainter(model = user.profilePicture)
-                        } else {
-                            painterResource(
-                                id = R.drawable.ic_launcher_background
-                            )
-                        },
-                        contentDescription = "",
-                        modifier = Modifier
-                            .size(120.dp)
-                            .fillMaxWidth()
-                    )
-                    Text(
-                        text = stringResource(id = R.string.name), modifier = Modifier
-                            .padding(top = 16.dp)
-                            .fillMaxWidth()
-                    )
-                    Text(
-                        text = user.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(
-                        text = stringResource(id = R.string.email_address), modifier = Modifier
-                            .padding(top = 16.dp)
-                            .fillMaxWidth()
-                    )
-                    Text(
-                        text = user.email,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(
-                        text = stringResource(id = R.string.phone_no),
-                        modifier = Modifier
-                            .padding(top = 16.dp)
-                            .fillMaxWidth()
-                    )
-                    Text(
-                        text = user.dob,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(
-                        text = stringResource(id = R.string.password), modifier = Modifier
-                            .padding(top = 16.dp)
-                            .fillMaxWidth()
-                    )
-                    Text(
-                        text = user.password,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(
-                        text = stringResource(R.string.date_of_birth),
-                        modifier = Modifier
-                            .padding(top = 16.dp)
-                            .fillMaxWidth()
-                    )
-                    Text(
-                        text = user.dob,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(
-                        text = stringResource(id = R.string.address),
-                        modifier = Modifier
-                            .padding(top = 16.dp)
-                            .fillMaxWidth()
-                    )
-                    Text(
-                        text = user.address,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 16.dp)
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(text = stringResource(R.string.gender))
-                            Text(text = user.gender, style = MaterialTheme.typography.titleMedium)
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(text = stringResource(R.string.blood_group))
-                            Text(
-                                text = user.bloodGroup,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                        }
-                    }
-
-                }
+            Column {
+                Text(
+                    color = MaterialTheme.colorScheme.onSecondary,
+                    text = type,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    modifier = Modifier.padding(start = 12.dp)
+                )
+                Text(
+                    text = "$title :- $notification",
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 3,
+                    modifier = Modifier.padding(start = 12.dp, top = 4.dp)
+                )
             }
         }
     }
@@ -940,6 +319,149 @@ fun HomeScreen(navController: NavHostController) {
 
 @Preview
 @Composable
-fun HomeScreenPreview() {
-    HomeScreen(navController = NavHostController(LocalContext.current))
+fun NotificationScreenPreview() {
+    NotificationScreen(NotificationViewModel(LocalContext.current))
+}
+
+
+8. Notification ViewModel
+class NotificationViewModel(context: Context):ViewModel() {
+
+    private val _notifications = MutableLiveData<List<Notification>>()
+    val notifications: LiveData<List<Notification>> = _notifications
+
+    init {
+        val notificationTypeList = context.resources.getStringArray(R.array.notificationTypeList)
+        val notificationTitleList = context.resources.getStringArray(R.array.notificationTitleList)
+        val notificationList = context.resources.getStringArray(R.array.notificationList)
+
+        val notifications = notificationTypeList.indices.map { index ->
+            Notification(
+                type = notificationTypeList[index],
+                title = notificationTitleList[index],
+                message = notificationList[index]
+            )
+        }
+
+        _notifications.value = notifications
+    }
+}
+
+9. Notifications
+    <string-array name="notificationTypeList">
+        <item>Announcement</item>
+        <item>Reminder</item>
+        <item>Alert</item>
+        <item>Announcement</item>
+        <item>Reminder</item>
+        <item>Alert</item>
+        <item>Announcement</item>
+        <item>Reminder</item>
+    </string-array>
+
+    <string-array name="notificationTitleList">
+        <item>New Company Policy</item>
+        <item>Timesheet Submission</item>
+        <item>System Maintenance</item>
+        <item>Office Closure</item>
+        <item>Performance Reviews</item>
+        <item>Security Update</item>
+        <item>Team Meeting</item>
+        <item>Project Deadline</item>
+    </string-array>
+
+    <string-array name="notificationList">
+        <item>Please review the new company policy on remote work.</item>
+        <item>Submit your timesheet by end of the day.</item>
+        <item>The system will be down for maintenance on 2024–06–05 from 02:00 to 04:00 UTC.</item>
+        <item>The office will be closed on 2024–06–10 for a public holiday.</item>
+        <item>Annual performance reviews are scheduled for next week.</item>
+        <item>A critical security update will be applied tonight. Please save your work.</item>
+        <item>Team meeting scheduled for 2024–06–07 at 10:00 AM in Conference Room A.</item>
+        <item>The project deadline is approaching. Ensure all tasks are completed by 2024–06–15.</item>
+    </string-array>
+
+10. Main Screen
+@Composable
+fun MainScreen() {
+    val navController = rememberNavController()
+    Scaffold(
+        bottomBar = { BottomNavigationBar(navController = navController) },
+        content = { paddingValues ->
+            NavHostController(navController = navController, paddingValues = paddingValues)
+        }
+    )
+}
+
+@Composable
+fun NavHostController(
+    navController: NavHostController,
+    paddingValues: PaddingValues,
+) {
+    NavHost(
+        navController = navController,
+        startDestination = HOME_SCREEN,
+        modifier = Modifier.padding(paddingValues),
+        builder = {
+            composable(HOME_SCREEN) {
+                HomeScreen()
+            }
+            composable(EMPLOYEE_SCREEN) {
+                EmployeeScreen(navController)
+            }
+            composable(NOTIFICATION_SCREEN) {
+                val context = LocalContext.current
+                val viewModel =  NotificationViewModel(context)
+                NotificationScreen(viewModel)
+            }
+            composable(PROFILE_SCREEN) {
+                ProfileScreen()
+            }
+            composable(ADD_EMPLOYEE_SCREEN){
+                val viewModel =  EmployeeViewModel(Application())
+                AddEmployeeScreen(viewModel,navController)
+            }
+        }
+    )
+}
+
+@Composable
+fun BottomNavigationBar(navController: NavHostController) {
+
+    val bottomNavItems = listOf(
+        BottomNavItem(
+            label = "Home",
+            icon = Icons.Default.Home,
+            route = HOME_SCREEN
+        ),
+        BottomNavItem(
+            label = "Employee",
+            icon = Icons.Default.List,
+            route = EMPLOYEE_SCREEN
+        ),
+        BottomNavItem(
+            label = "Notification",
+            icon = Icons.Default.Notifications,
+            route = NOTIFICATION_SCREEN,
+        ),
+        BottomNavItem(
+            label = "Profile",
+            icon = Icons.Default.Person,
+            route = PROFILE_SCREEN
+        )
+    )
+
+    BottomAppBar {
+        val navBackStackEntry by navController.currentBackStackEntryAsState()
+        val currentRoute = navBackStackEntry?.destination?.route
+        bottomNavItems.forEach { navItem ->
+            NavigationBarItem(
+                selected = currentRoute == navItem.route,
+                onClick = { navController.navigate(navItem.route) },
+                icon = { Icon(imageVector = navItem.icon, contentDescription = navItem.label) },
+                label = { Text(text = navItem.label) },
+                alwaysShowLabel = true
+            )
+        }
+    }
 }
