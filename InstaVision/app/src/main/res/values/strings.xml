@@ -1,3 +1,69 @@
 <resources>
-    <string name="app_name">InstaVision</string>
+    <string name="app_name">ET Movie Explorer</string>
+    <string name="btn_skip"><![CDATA[SKIP >>]]></string>
+    <string name="btn_get_started">Get Started</string>
+    <string name="btn_next">Next</string>
+    <string name="btn_previous">Previous</string>
+    <string name="email">Email address or Phone Number</string>
+    <string name="emailAddress">Email Address</string>
+    <string name="password">Password</string>
+    <string name="btn_login">Login</string>
+    <string name="btn_signUp">Sign Up</string>
+    <string name="don_t_have_an_account">Don\'t have an account ?</string>
+    <string name="name">Name</string>
+    <string name="already_have_account">Already have an account ?</string>
+    <string name="confirmPassword">Confirm Password</string>
+    <string name="phoneNumber">Phone Number</string>
+    <string name="forgot_password">Forgot Password ?</string>
+    <string name="movie_explorer">Movie Explorer</string>
+    <string name="home">Home</string>
+    <string name="favourite">Favourite</string>
+    <string name="toast_logout">logout</string>
+    <string name="sign_up_screen">Sign Up Screen</string>
+    <string name="error_fill_all_detail">Please fill all required details</string>
+    <string name="error_password_mismatched">Password Mismatched</string>
+    <string name="error_user_already_exist">"This e-mailId is already exist "</string>
+    <string name="empty_error">Please enter the details</string>
+    <string name="error_invalid">Invalid Email or Password</string>
+    <string name="search">Search</string>
+    <string name="no_movies_found">No movies found</string>
+    <string name="awards">Awards :- %1$s</string>
+    <string name="country">Country :-  %1$s</string>
+    <string name="director">Director :- %1$s</string>
+    <string name="actor">Actor :-  %1$s</string>
+    <string name="writer">Writer :- %1$s</string>
+    <string name="languages">"Languages :- %1$s "</string>
+    <string name="genre">Genre :- %1$s</string>
+    <string name="error">Error: %1$s</string>
+    <string name="imdb_rating">IMDB Rating :- %1$s</string>
+    <string name="imdb_id">IMDB Id :- %1$s</string>
+    <string name="btn_download">Download</string>
+    <string name="image_download_successful">Image downloaded successfully</string>
+    <string name="download_failed">Download Failed</string>
+    <string name="added_to_favorites">Added to favorites</string>
+    <string name="removed_from_favourite_list">Removed from favourite list</string>
+    <string name="check_out">Check out %1$s! \n\n%2$s</string>
+    <string name="tag">TAG</string>
+    <string name="login_screen">Login Screen</string>
+    <string name="ghost">ghost</string>
+    <string name="no_favourite_added">No Favourite Item</string>
+    <string name="lucifer">Lucifer</string>
+    <string name="money">Money</string>
+    <string name="play">Play</string>
+    <string name="add_to_watchlist">Watchlist</string>
+    <string name="see_all">See All</string>
+    <string name="movieLink">https://m.media-amazon.com/images/M/MV5BMzcyNTc1ODQzMF5BMl5BanBnXkFtZTgwNTgzMzY4MTI@._V1_SX300.jpg</string>
+    <string name="profile">Profile</string>
+
+    <string-array name="onboard_title">
+        <item>Hello Welcome To best Movies App</item>
+        <item>Enjoy Your Favourite Movies And Series</item>
+        <item>Share All New Movies And Series</item>
+    </string-array>
+
+    <string-array name="onboard_desc">
+        <item>Presenting the best OTT platform where you can watch unlimited movies and series.</item>
+        <item>You can add movies or series to your favourite list.\n</item>
+        <item>You can share all movies and series to your family and friends.\n</item>
+    </string-array>
 </resources>
