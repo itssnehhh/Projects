@@ -1,3 +1,72 @@
 <resources>
-    <string name="app_name">My Calculator</string>
+    <string name="app_name">CP Employee Hub</string>
+    <string name="notification_screen">Notification</string>
+    <string name="employee_list">Employee List</string>
+    <string name="select_blood_group">Select Blood Group</string>
+    <string name="date_of_birth">Date Of Birth</string>
+    <string name="home">Home</string>
+    <string name="employee">Employee</string>
+    <string name="notification">Notification</string>
+    <string name="profile">Profile</string>
+
+    <string-array name="homeCategoryList">
+        <item>Employee</item>
+        <item>Project</item>
+        <item>Attendance</item>
+        <item>Leaves</item>
+    </string-array>
+
+    <string-array name="profileOptionList">
+        <item>Punch</item>
+        <item>Attendance</item>
+        <item>Project</item>
+        <item>Funds</item>
+        <item>Lunch</item>
+        <item>Employee</item>
+        <item>Logout</item>
+    </string-array>
+
+    <string-array name="bloodGroupArray">
+        <item>A+</item>
+        <item>A-</item>
+        <item>B+</item>
+        <item>B-</item>
+        <item>AB+</item>
+        <item>AB-</item>
+        <item>O+</item>
+        <item>O-</item>
+    </string-array>
+
+    <string-array name="notificationTypeList">
+        <item>Announcement</item>
+        <item>Reminder</item>
+        <item>Alert</item>
+        <item>Announcement</item>
+        <item>Reminder</item>
+        <item>Alert</item>
+        <item>Announcement</item>
+        <item>Reminder</item>
+    </string-array>
+
+    <string-array name="notificationTitleList">
+        <item>New Company Policy</item>
+        <item>Timesheet Submission</item>
+        <item>System Maintenance</item>
+        <item>Office Closure</item>
+        <item>Performance Reviews</item>
+        <item>Security Update</item>
+        <item>Team Meeting</item>
+        <item>Project Deadline</item>
+    </string-array>
+
+    <string-array name="notificationList">
+        <item>Please review the new company policy on remote work.</item>
+        <item>Submit your timesheet by end of the day.</item>
+        <item>The system will be down for maintenance on 2024–06–05 from 02:00 to 04:00 UTC.</item>
+        <item>The office will be closed on 2024–06–10 for a public holiday.</item>
+        <item>Annual performance reviews are scheduled for next week.</item>
+        <item>A critical security update will be applied tonight. Please save your work.</item>
+        <item>Team meeting scheduled for 2024–06–07 at 10:00 AM in Conference Room A.</item>
+        <item>The project deadline is approaching. Ensure all tasks are completed by 2024–06–15.</item>
+    </string-array>
 </resources>
