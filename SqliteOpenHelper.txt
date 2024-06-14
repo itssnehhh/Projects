@@ -1,0 +1,355 @@
+1. package com.example.miniontranslator.data.remote
+
+data class TranslationResponse(
+    val translated: String?
+)
+
+
+2. package com.example.miniontranslator.data.remote
+
+import retrofit2.http.GET
+import retrofit2.http.Query
+
+interface MinionApi {
+
+    @GET("translate/minion.json")
+    suspend fun translateToMinion(@Query("text") text: String): TranslationResponse
+}
+
+
+3. package com.example.miniontranslator.data.local
+
+import androidx.room.Database
+import androidx.room.RoomDatabase
+
+@Database(entities = [TranslationEntity::class], version = 1)
+abstract class TranslationDatabase : RoomDatabase() {
+
+    abstract fun translationDao(): TranslationDao
+
+    companion object {
+        const val DATABASE_NAME = "translation_db"
+    }
+}
+
+
+4. package com.example.miniontranslator.data
+
+import android.app.Application
+import androidx.lifecycle.LiveData
+import com.example.miniontranslator.data.local.TranslationDao
+import com.example.miniontranslator.data.local.TranslationDatabase
+import com.example.miniontranslator.data.local.TranslationEntity
+import com.example.miniontranslator.data.remote.MinionApi
+import com.example.miniontranslator.data.remote.TranslationResponse
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+
+class TranslationRepository(application: Application) {
+
+    private val minionApi: MinionApi
+    private val translationDao: TranslationDao
+
+    init {
+        val retrofit = Retrofit.Builder()
+            .baseUrl("https://api.funtranslations.com/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        minionApi = retrofit.create(MinionApi::class.java)
+
+        val db = TranslationDatabase.getDatabase(application)
+        translationDao = db.translationDao()
+    }
+
+    suspend fun translateToMinion(inputText: String): TranslationEntity {
+        val response = minionApi.translateToMinion(inputText)
+        val translatedText = response.translated ?: "Translation failed"
+
+        val translationEntity = TranslationEntity(originalText = inputText, translatedText = translatedText)
+        saveTranslation(translationEntity)
+
+        return translationEntity
+    }
+
+    private suspend fun saveTranslation(translation: TranslationEntity) {
+        withContext(Dispatchers.IO) {
+            translationDao.insert(translation)
+        }
+    }
+
+    fun getAllTranslations(): LiveData<List<TranslationEntity>> {
+        return translationDao.getAllTranslations()
+    }
+
+    suspend fun deleteAllTranslations() {
+        translationDao.deleteAll()
+    }
+}
+
+
+5. package com.example.miniontranslator.ui
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.viewModelScope
+import com.example.miniontranslator.data.TranslationRepository
+import com.example.miniontranslator.data.local.TranslationEntity
+import kotlinx.coroutines.launch
+
+class MainViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val repository: TranslationRepository = TranslationRepository(application)
+
+    val translationHistory: LiveData<List<TranslationEntity>> = repository.getAllTranslations()
+
+    fun translateToMinion(inputText: String) {
+        viewModelScope.launch {
+            repository.translateToMinion(inputText)
+        }
+    }
+
+    fun deleteAllTranslations() {
+        viewModelScope.launch {
+            repository.deleteAllTranslations()
+        }
+    }
+}
+
+
+6. package com.example.miniontranslator.ui
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
+import com.example.miniontranslator.data.local.TranslationEntity
+
+class MainActivity : ComponentActivity() {
+
+    private val viewModel: MainViewModel by viewModels()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MinionTranslatorApp(viewModel)
+        }
+    }
+}
+
+@Composable
+fun MinionTranslatorApp(viewModel: MainViewModel) {
+    val translationHistory by viewModel.translationHistory.observeAsState(initial = emptyList())
+    var inputText by remember { mutableStateOf(TextFieldValue()) }
+
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+            .fillMaxSize()
+    ) {
+        // Input Text Field
+        OutlinedTextField(
+            value = inputText.text,
+            onValueChange = { inputText = it },
+            label = { Text("Enter English text") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+        )
+
+        // Translate Button
+        Button(
+            onClick = { viewModel.translateToMinion(inputText.text) },
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text("Translate")
+        }
+
+        // Display Translation History
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Translation History", style = MaterialTheme.typography.h6)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyColumn {
+            items(translationHistory) { translation ->
+                Text("${translation.originalText} -> ${translation.translatedText}")
+            }
+        }
+
+        // Delete History FAB
+        FloatingActionButton(
+            onClick = { viewModel.deleteAllTranslations() },
+            modifier = Modifier
+                .padding(16.dp)
+                .align(Alignment.End)
+        ) {
+            Icon(Icons.Default.Delete, contentDescription = "Delete History")
+        }
+    }
+}
+ 7. package com.example.miniontranslator.data.local
+
+import android.content.Context
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
+
+class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+
+    companion object {
+        const val DATABASE_NAME = "translation_db"
+        const val DATABASE_VERSION = 1
+
+        const val TABLE_TRANSLATIONS = "translations"
+        const val COLUMN_ID = "id"
+        const val COLUMN_ORIGINAL_TEXT = "original_text"
+        const val COLUMN_TRANSLATED_TEXT = "translated_text"
+        const val COLUMN_TIMESTAMP = "timestamp"
+    }
+
+    override fun onCreate(db: SQLiteDatabase?) {
+        db?.execSQL(
+            "CREATE TABLE $TABLE_TRANSLATIONS (" +
+                    "$COLUMN_ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "$COLUMN_ORIGINAL_TEXT TEXT, " +
+                    "$COLUMN_TRANSLATED_TEXT TEXT, " +
+                    "$COLUMN_TIMESTAMP INTEGER)"
+        )
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
+        db?.execSQL("DROP TABLE IF EXISTS $TABLE_TRANSLATIONS")
+        onCreate(db)
+    }
+}
+ 
+
+8. package com.example.miniontranslator.data
+
+import android.content.ContentValues
+import android.content.Context
+import com.example.miniontranslator.data.local.DatabaseHelper
+import com.example.miniontranslator.data.local.TranslationEntity
+import com.example.miniontranslator.data.remote.MinionApi
+import com.example.miniontranslator.data.remote.TranslationResponse
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+
+class TranslationRepository(context: Context) {
+
+    private val minionApi: MinionApi
+    private val dbHelper: DatabaseHelper = DatabaseHelper(context)
+
+    init {
+        val retrofit = Retrofit.Builder()
+            .baseUrl("https://api.funtranslations.com/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        minionApi = retrofit.create(MinionApi::class.java)
+    }
+
+    suspend fun translateToMinion(inputText: String): TranslationEntity {
+        val response = minionApi.translateToMinion(inputText)
+        val translatedText = response.translated ?: "Translation failed"
+
+        val translation = TranslationEntity(inputText, translatedText, System.currentTimeMillis())
+        saveTranslation(translation)
+
+        return translation
+    }
+
+    private suspend fun saveTranslation(translation: TranslationEntity) {
+        withContext(Dispatchers.IO) {
+            val db = dbHelper.writableDatabase
+            val values = ContentValues().apply {
+                put(DatabaseHelper.COLUMN_ORIGINAL_TEXT, translation.originalText)
+                put(DatabaseHelper.COLUMN_TRANSLATED_TEXT, translation.translatedText)
+                put(DatabaseHelper.COLUMN_TIMESTAMP, translation.timestamp)
+            }
+            db.insert(DatabaseHelper.TABLE_TRANSLATIONS, null, values)
+            db.close()
+        }
+    }
+
+    fun getAllTranslations(): List<TranslationEntity> {
+        val translations = mutableListOf<TranslationEntity>()
+        val db = dbHelper.readableDatabase
+        val cursor = db.query(
+            DatabaseHelper.TABLE_TRANSLATIONS,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "${DatabaseHelper.COLUMN_TIMESTAMP} DESC"
+        )
+
+        with(cursor) {
+            while (moveToNext()) {
+                val id = getInt(getColumnIndexOrThrow(DatabaseHelper.COLUMN_ID))
+                val originalText = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_ORIGINAL_TEXT))
+                val translatedText = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_TRANSLATED_TEXT))
+                val timestamp = getLong(getColumnIndexOrThrow(DatabaseHelper.COLUMN_TIMESTAMP))
+
+                translations.add(TranslationEntity(id, originalText, translatedText, timestamp))
+            }
+            close()
+        }
+        db.close()
+
+        return translations
+    }
+
+    fun deleteAllTranslations() {
+        val db = dbHelper.writableDatabase
+        db.delete(DatabaseHelper.TABLE_TRANSLATIONS, null, null)
+        db.close()
+    }
+}
+
+
+9. package com.example.miniontranslator.ui
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import com.example.miniontranslator.data.TranslationRepository
+import com.example.miniontranslator.data.local.TranslationEntity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+class MainViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val repository: TranslationRepository = TranslationRepository(application)
+
+    fun translateToMinion(inputText: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            repository.translateToMinion(inputText)
+        }
+    }
+
+    fun getAllTranslations(): List<TranslationEntity> {
+        return repository.getAllTranslations()
+    }
+
+    fun deleteAllTranslations() {
+        repository.deleteAllTranslations()
+    }
+}
