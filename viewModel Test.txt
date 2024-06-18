@@ -1,0 +1,305 @@
+@HiltAndroidApp
+class UniversityApplication : Application()
+
+
+data class University(
+    val name: String,
+    val country: String,
+    val web_pages: List<String>
+)
+
+
+3. 
+interface UniversityApiService {
+    @GET("search")
+    suspend fun getUniversitiesByCountry(@Query("country") country: String): List<University>
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+object NetworkModule {
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("http://universities.hipolabs.com/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideUniversityApiService(retrofit: Retrofit): UniversityApiService {
+        return retrofit.create(UniversityApiService::class.java)
+    }
+}
+
+
+4. 
+
+@Singleton
+class UniversityRepository @Inject constructor(private val apiService: UniversityApiService) {
+    suspend fun getUniversitiesByCountry(country: String): List<University> {
+        return apiService.getUniversitiesByCountry(country)
+    }
+}
+
+
+5. 
+@HiltViewModel
+class UniversityViewModel @Inject constructor(
+    private val repository: UniversityRepository
+) : ViewModel() {
+
+    private val _universities = MutableStateFlow<List<University>>(emptyList())
+    val universities: StateFlow<List<University>> = _universities
+
+    fun fetchUniversities(country: String) {
+        viewModelScope.launch {
+            try {
+                val result = repository.getUniversitiesByCountry(country)
+                _universities.value = result
+            } catch (e: Exception) {
+                // Handle error
+                _universities.value = emptyList()
+            }
+        }
+    }
+}
+
+
+6. 
+@Composable
+fun UniversityScreen(viewModel: UniversityViewModel) {
+    val countryList = listOf("United States", "Canada", "Australia", "United Kingdom")
+    var selectedCountry by remember { mutableStateOf(countryList[0]) }
+    val universities by viewModel.universities.collectAsState()
+
+    Column {
+        DropdownMenu(selectedCountry, countryList) { country ->
+            selectedCountry = country
+            viewModel.fetchUniversities(country)
+        }
+        LazyColumn {
+            items(universities) { university ->
+                Text(university.name)
+            }
+        }
+    }
+}
+
+@Composable
+fun DropdownMenu(
+    selectedCountry: String,
+    countryList: List<String>,
+    onCountrySelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        Text(
+            text = selectedCountry,
+            modifier = Modifier
+                .clickable { expanded = true }
+                .background(Color.Gray)
+                .padding(16.dp)
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            countryList.forEach { country ->
+                DropdownMenuItem(onClick = {
+                    onCountrySelected(country)
+                    expanded = false
+                }) {
+                    Text(text = country)
+                }
+            }
+        }
+    }
+}
+
+
+@AndroidEntryPoint
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            val viewModel: UniversityViewModel = hiltViewModel()
+            UniversityScreen(viewModel)
+        }
+    }
+}
+
+
+
+@HiltAndroidTest
+@RunWith(AndroidJUnit4::class)
+class UniversityViewModelTest {
+
+    @get:Rule
+    var hiltRule = HiltAndroidRule(this)
+
+    @Mock
+    lateinit var repository: UniversityRepository
+
+    private lateinit var viewModel: UniversityViewModel
+
+    @Before
+    fun setUp() {
+        MockitoAnnotations.initMocks(this)
+        hiltRule.inject()
+        viewModel = UniversityViewModel(repository)
+    }
+
+    @Test
+    fun testFetchUniversities() = runBlocking {
+        val mockUniversities = listOf(
+            University("Harvard University", "United States", listOf("https://www.harvard.edu")),
+            University("Stanford University", "United States", listOf("https://www.stanford.edu"))
+        )
+        Mockito.`when`(repository.getUniversitiesByCountry("United States")).thenReturn(mockUniversities)
+
+        viewModel.fetchUniversities("United States")
+
+        val universities = viewModel.universities.first()
+        Assert.assertEquals(2, universities.size)
+        Assert.assertEquals("Harvard University", universities[0].name)
+    }
+}
+
+
+ViewModel testing in Jetpack Compose Android involves verifying the functionality of your ViewModel, ensuring it behaves as expected under various conditions. This includes testing the data it provides to the UI, handling of different states, and interactions with the repository or other data sources. ViewModel testing is typically done using unit tests.
+
+Here’s a step-by-step guide to create and run unit tests for a ViewModel in a Jetpack Compose Android project:
+
+Step 1: Set Up Dependencies
+Ensure you have the necessary dependencies in your build.gradle files for testing.
+
+gradle
+Copy code
+// build.gradle (Module)
+dependencies {
+    // Other dependencies
+
+    // Hilt and Dagger dependencies for testing
+    testImplementation 'com.google.dagger:hilt-android-testing:2.44'
+    kaptTest 'com.google.dagger:hilt-compiler:2.44'
+
+    // Testing dependencies
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation "org.mockito:mockito-core:3.12.4"
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4"
+    testImplementation 'androidx.arch.core:core-testing:2.1.0'
+    testImplementation 'androidx.test.ext:junit:1.1.3'
+    testImplementation 'androidx.test:core-ktx:1.4.0'
+}
+Step 2: Create the ViewModel
+Here's an example of a simple ViewModel to be tested.
+
+kotlin
+Copy code
+@HiltViewModel
+class UniversityViewModel @Inject constructor(
+    private val repository: UniversityRepository
+) : ViewModel() {
+
+    private val _universities = MutableStateFlow<List<University>>(emptyList())
+    val universities: StateFlow<List<University>> = _universities
+
+    fun fetchUniversities(country: String) {
+        viewModelScope.launch {
+            try {
+                val result = repository.getUniversitiesByCountry(country)
+                _universities.value = result
+            } catch (e: Exception) {
+                _universities.value = emptyList()
+            }
+        }
+    }
+}
+Step 3: Create the Unit Test for ViewModel
+Here’s an example of how to write a unit test for the above ViewModel.
+
+Set up the test environment: Use Hilt for dependency injection and set up necessary rules.
+
+Mock dependencies: Use Mockito to mock the repository and control its behavior during tests.
+
+Write test cases: Verify the ViewModel's state and behavior.
+
+kotlin
+Copy code
+@HiltAndroidTest
+@RunWith(AndroidJUnit4::class)
+class UniversityViewModelTest {
+
+    @get:Rule
+    var hiltRule = HiltAndroidRule(this)
+
+    @Mock
+    lateinit var repository: UniversityRepository
+
+    private lateinit var viewModel: UniversityViewModel
+
+    @Before
+    fun setUp() {
+        MockitoAnnotations.openMocks(this)
+        hiltRule.inject()
+        viewModel = UniversityViewModel(repository)
+    }
+
+    @Test
+    fun testFetchUniversities_success() = runBlockingTest {
+        val mockUniversities = listOf(
+            University("Harvard University", "United States", listOf("https://www.harvard.edu")),
+            University("Stanford University", "United States", listOf("https://www.stanford.edu"))
+        )
+        Mockito.`when`(repository.getUniversitiesByCountry("United States")).thenReturn(mockUniversities)
+
+        viewModel.fetchUniversities("United States")
+
+        val universities = viewModel.universities.first()
+        assertEquals(2, universities.size)
+        assertEquals("Harvard University", universities[0].name)
+    }
+
+    @Test
+    fun testFetchUniversities_failure() = runBlockingTest {
+        Mockito.`when`(repository.getUniversitiesByCountry("United States")).thenThrow(RuntimeException("Network error"))
+
+        viewModel.fetchUniversities("United States")
+
+        val universities = viewModel.universities.first()
+        assertTrue(universities.isEmpty())
+    }
+}
+Step 4: Run the Unit Tests
+To run your unit tests:
+
+Use Android Studio: Right-click on the test class or method and select "Run".
+
+Use Gradle: Run the tests from the command line using ./gradlew test.
+
+Explanation
+HiltAndroidTest: This annotation is used for Hilt dependency injection in tests.
+HiltAndroidRule: This rule sets up and tears down Hilt's dependency injection for each test.
+MockitoAnnotations.openMocks: Initializes the fields annotated with Mockito annotations.
+runBlockingTest: Provided by the kotlinx-coroutines-test library, this is used to test coroutine-based code.
+Additional Tips
+StateFlow and LiveData: Both are observable data holders. In testing, you can collect the values from StateFlow or observe LiveData to verify the state.
+ViewModelScope: Ensure you handle coroutine scopes correctly in tests. runBlockingTest helps to control coroutine execution in tests.
+By following these steps, you can ensure that your ViewModel behaves correctly, making your application more robust and reliable.
+
+
+
+
+
+
+
+You’ve reached your GPT-4o limit.
+Responses will use GPT-3.5 until your limit resets after 12:11 PM.
+
+Get Plus
+
+
