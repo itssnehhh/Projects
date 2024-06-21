@@ -1,0 +1,397 @@
+dependencies {
+    implementation "androidx.core:core-ktx:1.7.0"
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.4.0"
+    implementation "androidx.activity:activity-compose:1.4.0"
+    implementation "androidx.compose.ui:ui:1.1.0"
+    implementation "androidx.compose.material3:material3:1.0.0-alpha04"
+    implementation "androidx.compose.ui:ui-tooling-preview:1.1.0"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.4.0"
+    implementation "androidx.hilt:hilt-navigation-compose:1.0.0"
+    implementation "androidx.compose.runtime:runtime-livedata:1.1.0"
+    implementation "androidx.compose.material:material-icons-extended:1.1.0"
+    implementation "androidx.compose.foundation:foundation:1.1.0"
+
+    // Hilt
+    implementation "com.google.dagger:hilt-android:2.40.5"
+    kapt "com.google.dagger:hilt-compiler:2.40.5"
+
+    // Unit testing
+    testImplementation "junit:junit:4.13.2"
+    testImplementation "org.mockito:mockito-core:3.11.2"
+    testImplementation "androidx.arch.core:core-testing:2.1.0"
+}
+
+
+package com.example.timerapp
+
+import android.os.CountDownTimer
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+
+class TimerViewModel : ViewModel() {
+
+    private var timer: CountDownTimer? = null
+
+    private val _remainingTime = MutableLiveData<Long>()
+    val remainingTime: LiveData<Long> = _remainingTime
+
+    private val _elapsedTime = MutableLiveData<Long>()
+    val elapsedTime: LiveData<Long> = _elapsedTime
+
+    private val _isTimerRunning = MutableLiveData<Boolean>()
+    val isTimerRunning: LiveData<Boolean> = _isTimerRunning
+
+    private var totalDuration: Long = 0
+
+    fun startTimer(hours: Int, minutes: Int, seconds: Int) {
+        totalDuration = (hours * 3600 + minutes * 60 + seconds) * 1000L
+        timer?.cancel()
+        timer = object : CountDownTimer(totalDuration, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                _remainingTime.value = millisUntilFinished
+                _elapsedTime.value = totalDuration - millisUntilFinished
+            }
+
+            override fun onFinish() {
+                _remainingTime.value = 0
+                _elapsedTime.value = totalDuration
+                _isTimerRunning.value = false
+            }
+        }.start()
+        _isTimerRunning.value = true
+    }
+
+    fun stopTimer() {
+        timer?.cancel()
+        _isTimerRunning.value = false
+    }
+}
+
+
+package com.example.timerapp
+
+import android.os.Vibrator
+import android.widget.Toast
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen() {
+    val viewModel: TimerViewModel = viewModel()
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
+
+    val remainingTime by viewModel.remainingTime.observeAsState(0)
+    val elapsedTime by viewModel.elapsedTime.observeAsState(0)
+    val isTimerRunning by viewModel.isTimerRunning.observeAsState(false)
+
+    var hours by remember { mutableStateOf(TextFieldValue("0")) }
+    var minutes by remember { mutableStateOf(TextFieldValue("0")) }
+    var seconds by remember { mutableStateOf(TextFieldValue("0")) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Timer App") }
+            )
+        },
+        content = {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(16.dp))
+                TextField(
+                    value = hours,
+                    onValueChange = { hours = it },
+                    label = { Text("Hours") }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                TextField(
+                    value = minutes,
+                    onValueChange = { minutes = it },
+                    label = { Text("Minutes") }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                TextField(
+                    value = seconds,
+                    onValueChange = { seconds = it },
+                    label = { Text("Seconds") }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = {
+                    if (isTimerRunning) {
+                        viewModel.stopTimer()
+                    } else {
+                        viewModel.startTimer(
+                            hours.text.toIntOrNull() ?: 0,
+                            minutes.text.toIntOrNull() ?: 0,
+                            seconds.text.toIntOrNull() ?: 0
+                        )
+                    }
+                }) {
+                    Text(if (isTimerRunning) "Stop Timer" else "Start Timer")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Remaining Time: ${remainingTime / 1000} seconds")
+                Text("Elapsed Time: ${elapsedTime / 1000} seconds")
+            }
+        }
+    )
+
+    // Notification and Vibration
+    LaunchedEffect(key1 = remainingTime) {
+        if (remainingTime == 0L && isTimerRunning) {
+            val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            vibrator.vibrate(1000)
+            Toast.makeText(context, "Time's up!", Toast.LENGTH_SHORT).show()
+            // play sound
+            scope.launch {
+                delay(1000) // wait for vibration to finish
+                viewModel.stopTimer()
+            }
+        }
+    }
+}
+
+
+package com.example.timerapp
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
+import com.example.timerapp.ui.theme.TimerAppTheme
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            TimerAppTheme {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    HomeScreen()
+                }
+            }
+        }
+    }
+}
+
+
+package com.example.timerapp
+
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.lifecycle.Observer
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.mockito.Mock
+import org.mockito.MockitoAnnotations
+import org.mockito.kotlin.verify
+
+@ExperimentalCoroutinesApi
+class TimerViewModelTest {
+
+    @get:Rule
+    val instantExecutorRule = InstantTaskExecutorRule()
+
+    private lateinit var viewModel: TimerViewModel
+
+    @Mock
+    private lateinit var remainingTimeObserver: Observer<Long>
+
+    @Mock
+    private lateinit var elapsedTimeObserver: Observer<Long>
+
+    @Mock
+    private lateinit var isTimerRunningObserver: Observer<Boolean>
+
+    @Before
+    fun setUp() {
+        MockitoAnnotations.openMocks(this)
+        viewModel = TimerViewModel()
+        viewModel.remainingTime.observeForever(remainingTimeObserver)
+        viewModel.elapsedTime.observeForever(elapsedTimeObserver)
+        viewModel.isTimerRunning.observeForever(isTimerRunningObserver)
+    }
+
+    @After
+    fun tearDown() {
+        viewModel.remainingTime.removeObserver(remainingTimeObserver)
+        viewModel.elapsedTime.removeObserver(elapsedTimeObserver)
+        viewModel.isTimerRunning.removeObserver(isTimerRunningObserver)
+    }
+
+    @Test
+    fun startTimer_updatesRemainingAndElapsedTime() = runTest {
+        viewModel.startTimer(0, 0, 10)
+
+        verify(isTimerRunningObserver).onChanged(true)
+        verify(remainingTimeObserver).onChanged(10000)
+        // Add more verifications for subsequent ticks if necessary
+    }
+
+    @Test
+    fun stopTimer_stopsTimer() = runTest {
+        viewModel.startTimer(0, 0, 10)
+        viewModel.stopTimer()
+
+        verify(isTimerRunningObserver).onChanged(false)
+    }
+}
+
+
+package com.example.timerapp
+
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.lifecycle.Observer
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.mockito.Mock
+import org.mockito.MockitoAnnotations
+import org.mockito.kotlin.verify
+
+@ExperimentalCoroutinesApi
+class TimerViewModelTest {
+
+    @get:Rule
+    val instantExecutorRule = InstantTaskExecutorRule()
+
+    private lateinit var viewModel: TimerViewModel
+
+    @Mock
+    private lateinit var remainingTimeObserver: Observer<Long>
+
+    @Mock
+    private lateinit var elapsedTimeObserver: Observer<Long>
+
+    @Mock
+    private lateinit var isTimerRunningObserver: Observer<Boolean>
+
+    @Before
+    fun setUp() {
+        MockitoAnnotations.openMocks(this)
+        viewModel = TimerViewModel()
+        viewModel.remainingTime.observeForever(remainingTimeObserver)
+        viewModel.elapsedTime.observeForever(elapsedTimeObserver)
+        viewModel.isTimerRunning.observeForever(isTimerRunningObserver)
+    }
+
+    @After
+    fun tearDown() {
+        viewModel.remainingTime.removeObserver(remainingTimeObserver)
+        viewModel.elapsedTime.removeObserver(elapsedTimeObserver)
+        viewModel.isTimerRunning.removeObserver(isTimerRunningObserver)
+    }
+
+    @Test
+    fun startTimer_updatesRemainingAndElapsedTime() = runTest {
+        viewModel.startTimer(0, 0, 10)
+
+        verify(isTimerRunningObserver).onChanged(true)
+        verify(remainingTimeObserver).onChanged(10000)
+        // Add more verifications for subsequent ticks if necessary
+    }
+
+    @Test
+    fun stopTimer_stopsTimer() = runTest {
+        viewModel.startTimer(0, 0, 10)
+        viewModel.stopTimer()
+
+        verify(isTimerRunningObserver).onChanged(false)
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen() {
+    // Previous code remains unchanged
+
+    val progress by derivedStateOf {
+        if (totalDuration > 0) {
+            1f - remainingTime.toFloat() / totalDuration
+        } else {
+            0f
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Timer App") }
+            )
+        },
+        content = {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(16.dp))
+                TextField(
+                    value = hours,
+                    onValueChange = { hours = it },
+                    label = { Text("Hours") }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                TextField(
+                    value = minutes,
+                    onValueChange = { minutes = it },
+                    label = { Text("Minutes") }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                TextField(
+                    value = seconds,
+                    onValueChange = { seconds = it },
+                    label = { Text("Seconds") }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = {
+                    if (isTimerRunning) {
+                        viewModel.stopTimer()
+                    } else {
+                        viewModel.startTimer(
+                            hours.text.toIntOrNull() ?: 0,
+                            minutes.text.toIntOrNull() ?: 0,
+                            seconds.text.toIntOrNull() ?: 0
+                        )
+                    }
+                }) {
+                    Text(if (isTimerRunning) "Stop Timer" else "Start Timer")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Remaining Time: ${remainingTime / 1000} seconds")
+                Text("Elapsed Time: ${elapsedTime / 1000} seconds")
+
+                Spacer(modifier = Modifier.height(16.dp))
+                LinearProgressIndicator(progress = progress, modifier = Modifier.fillMaxWidth())
+            }
+        }
+    )
+}
