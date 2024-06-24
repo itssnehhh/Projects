@@ -1,0 +1,303 @@
+package com.example.cpcountdowntimerappliation.ui.screen
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import com.example.cpcountdowntimerappliation.viewModel.TimerViewModel
+
+@Composable
+fun TimerScreen(viewModel: TimerViewModel) {
+    val context = LocalContext.current
+    val hours by viewModel.hours.collectAsState()
+    val minutes by viewModel.minutes.collectAsState()
+    val seconds by viewModel.seconds.collectAsState()
+    val isRunning by viewModel.isRunning.collectAsState()
+    val remainingTime by viewModel.remainingTime.collectAsState()
+    val elapsedTime by viewModel.elapsedTime.collectAsState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        OutlinedTextField(
+            value = hours,
+            onValueChange = { viewModel.onHoursChanged(it) },
+            label = { Text("Hours") }
+        )
+        OutlinedTextField(
+            value = minutes,
+            onValueChange = { viewModel.onMinutesChanged(it) },
+            label = { Text("Minutes") }
+        )
+        OutlinedTextField(
+            value = seconds,
+            onValueChange = { viewModel.onSecondsChanged(it) },
+            label = { Text("Seconds") }
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = {
+            if (isRunning) {
+                viewModel.stopTimer(context)
+            } else {
+                viewModel.startTimer(context)
+            }
+        }) {
+            Text(if (isRunning) "Stop" else "Start")
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Remaining Time: $remainingTime")
+        Text("Elapsed Time: $elapsedTime")
+    }
+}
+
+package com.example.cpcountdowntimerappliation.viewModel
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.media.RingtoneManager
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import androidx.core.app.NotificationCompat
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.cpcountdowntimerappliation.R
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+
+class TimerViewModel : ViewModel() {
+
+    private val _hours = MutableStateFlow("")
+    val hours: StateFlow<String> get() = _hours
+
+    private val _minutes = MutableStateFlow("")
+    val minutes: StateFlow<String> get() = _minutes
+
+    private val _seconds = MutableStateFlow("")
+    val seconds: StateFlow<String> get() = _seconds
+
+    private val _isRunning = MutableStateFlow(false)
+    val isRunning: StateFlow<Boolean> get() = _isRunning
+
+    private val _remainingTime = MutableStateFlow("")
+    val remainingTime: StateFlow<String> get() = _remainingTime
+
+    private val _elapsedTime = MutableStateFlow("")
+    val elapsedTime: StateFlow<String> get() = _elapsedTime
+
+    private var timerJob: Job? = null
+    private var totalSeconds = 0
+    private var elapsedSeconds = 0
+
+    fun onHoursChanged(value: String) {
+        _hours.value = value
+    }
+
+    fun onMinutesChanged(value: String) {
+        _minutes.value = value
+    }
+
+    fun onSecondsChanged(value: String) {
+        _seconds.value = value
+    }
+
+    fun startTimer(context: Context) {
+        totalSeconds = (_hours.value.toIntOrNull() ?: 0) * 3600 +
+                (_minutes.value.toIntOrNull() ?: 0) * 60 +
+                (_seconds.value.toIntOrNull() ?: 0)
+        elapsedSeconds = 0
+
+        if (totalSeconds > 0) {
+            _isRunning.value = true
+            timerJob = viewModelScope.launch {
+                while (elapsedSeconds < totalSeconds && _isRunning.value) {
+                    delay(1000)
+                    elapsedSeconds++
+                    _remainingTime.value = formatTime(totalSeconds - elapsedSeconds)
+                    _elapsedTime.value = formatTime(elapsedSeconds)
+                }
+                if (elapsedSeconds >= totalSeconds) {
+                    notifyCompletion(context)
+                    _isRunning.value = false
+                }
+            }
+        }
+    }
+
+    fun stopTimer(context: Context) {
+        timerJob?.cancel()
+        _isRunning.value = false
+        _remainingTime.value = ""
+        _elapsedTime.value = ""
+    }
+
+    private fun formatTime(seconds: Int): String {
+        val h = seconds / 3600
+        val m = (seconds % 3600) / 60
+        val s = seconds % 60
+        return String.format("%02d:%02d:%02d", h, m, s)
+    }
+
+    private fun notifyCompletion(context: Context) {
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val notificationChannelId = "TIMER_NOTIFICATION_CHANNEL"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                notificationChannelId,
+                "Timer Notification",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val notification = NotificationCompat.Builder(context, notificationChannelId)
+            .setSmallIcon(R.drawable.ic_timer)
+            .setContentTitle("Timer")
+            .setContentText("Time is up!")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+
+        notificationManager.notify(1, notification)
+
+        val ringtone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+        val r = RingtoneManager.getRingtone(context, ringtone)
+        r.play()
+
+        val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(2000, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            vibrator.vibrate(2000)
+        }
+    }
+}
+
+package com.example.cpcountdowntimerappliation
+
+import android.app.Application
+import dagger.hilt.android.HiltAndroidApp
+
+@HiltAndroidApp
+class CountDownTimer : Application()
+
+
+package com.example.cpcountdowntimerappliation
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.viewModels
+import com.example.cpcountdowntimerappliation.ui.screen.TimerScreen
+import com.example.cpcountdowntimerappliation.viewModel.TimerViewModel
+import dagger.hilt.android.AndroidEntryPoint
+
+@AndroidEntryPoint
+class MainActivity : ComponentActivity() {
+
+    private val countDownViewModel : TimerViewModel by viewModels()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            TimerScreen(viewModel = countDownViewModel)
+        }
+    }
+}
+
+
+package com.example.cpcountdowntimerappliation.ui
+
+import android.content.Context
+import com.example.cpcountdowntimerappliation.viewModel.TimerViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.TestCoroutineDispatcher
+import kotlinx.coroutines.test.runBlockingTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.mockito.Mock
+
+@ExperimentalCoroutinesApi
+class TimerViewModelTest {
+
+    @get:Rule
+    val instantTaskExecutorRule = CountDownTimerRule()
+
+    @Mock
+    private lateinit var context: Context
+
+    private val testDispatcher = TestCoroutineDispatcher()
+
+    private lateinit var viewModel: TimerViewModel
+
+    @Before
+    fun setUp() {
+        viewModel = TimerViewModel()
+    }
+
+    @Test
+    fun testInitialValues() {
+        assertEquals("", viewModel.hours.value)
+        assertEquals("", viewModel.minutes.value)
+        assertEquals("", viewModel.seconds.value)
+        assertEquals(false, viewModel.isRunning.value)
+        assertEquals("", viewModel.remainingTime.value)
+        assertEquals("", viewModel.elapsedTime.value)
+    }
+
+    @Test
+    fun testStartTimer(): Unit = testDispatcher.runBlockingTest {
+        viewModel.onHoursChanged("0")
+        viewModel.onMinutesChanged("0")
+        viewModel.onSecondsChanged("5")
+
+        viewModel.startTimer(context)
+
+        assertTrue(viewModel.isRunning.value)
+        testScheduler.apply { advanceTimeBy(5000); runCurrent() }
+        assertEquals("00:00:05", viewModel.elapsedTime.value)
+        assertEquals("00:00:00", viewModel.remainingTime.value)
+        assertFalse(viewModel.isRunning.value)
+    }
+
+    @Test
+    fun testStopTimer(): Unit = testDispatcher.runBlockingTest {
+        viewModel.onHoursChanged("0")
+        viewModel.onMinutesChanged("1")
+        viewModel.onSecondsChanged("0")
+
+        viewModel.startTimer(context)
+
+        assertTrue(viewModel.isRunning.value)
+        testScheduler.apply { advanceTimeBy(30000); runCurrent() }
+        viewModel.stopTimer(context)
+        assertFalse(viewModel.isRunning.value)
+        assertEquals("", viewModel.remainingTime.value)
+        assertEquals("", viewModel.elapsedTime.value)
+    }
+}
