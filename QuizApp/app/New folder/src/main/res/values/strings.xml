@@ -1,9 +1,0 @@
-<resources>
-    <string name="app_name">CP StoreMate Application</string>
-    <string name="favourite_screen">Favourites</string>
-    <string name="item_removed">Removed</string>
-    <string name="delete">Delete</string>
-    <string name="cancel">Cancel</string>
-    <string name="delete_product">Delete Product</string>
-    <string name="delete_dialog_text">Are you sure you want to delete this product?</string>
-</resources>
