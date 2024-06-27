@@ -1,0 +1,334 @@
+1. Main Activity
+
+package com.example.contactsapp
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.material.MaterialTheme
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MaterialTheme {
+                ContactApp()
+            }
+        }
+    }
+}
+
+
+2. ContactViewModel
+
+package com.example.contactsapp
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.contactsapp.data.Contact
+import com.example.contactsapp.data.ContactRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+
+class ContactViewModel : ViewModel() {
+    private val repository = ContactRepository()
+    private val _contacts = MutableStateFlow<List<Contact>>(emptyList())
+    val contacts: StateFlow<List<Contact>> = _contacts
+
+    init {
+        viewModelScope.launch {
+            repository.getContacts().collect {
+                _contacts.value = it
+            }
+        }
+    }
+
+    fun addContact(contact: Contact) {
+        viewModelScope.launch {
+            repository.addContact(contact)
+        }
+    }
+
+    fun updateContact(contact: Contact) {
+        viewModelScope.launch {
+            repository.updateContact(contact)
+        }
+    }
+
+    fun deleteContact(contactId: String) {
+        viewModelScope.launch {
+            repository.deleteContact(contactId)
+        }
+    }
+}
+
+
+3. ContactRepository
+
+package com.example.contactsapp.data
+
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
+
+class ContactRepository {
+    private val db = FirebaseFirestore.getInstance()
+    private val contactsCollection = db.collection("contacts")
+
+    fun getContacts(): Flow<List<Contact>> = callbackFlow {
+        val listenerRegistration = contactsCollection.addSnapshotListener { snapshot, e ->
+            if (e != null) {
+                close(e)
+                return@addSnapshotListener
+            }
+            val contacts = snapshot?.toObjects(Contact::class.java) ?: emptyList()
+            trySend(contacts).isSuccess
+        }
+        awaitClose { listenerRegistration.remove() }
+    }
+
+    suspend fun addContact(contact: Contact) {
+        contactsCollection.add(contact).await()
+    }
+
+    suspend fun updateContact(contact: Contact) {
+        contactsCollection.document(contact.id).set(contact).await()
+    }
+
+    suspend fun deleteContact(contactId: String) {
+        contactsCollection.document(contactId).delete().await()
+    }
+}
+
+
+4. Contact
+package com.example.contactsapp.data
+
+data class Contact(
+    val id: String = "",
+    val name: String = "",
+    val phoneNumbers: List<String> = listOf(),
+    val profileImage: String = "",
+    val bloodGroup: String = "",
+    val address: String = ""
+)
+
+
+5. Contact App
+package com.example.contactsapp
+
+import androidx.compose.runtime.Composable
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+
+@Composable
+fun ContactApp(viewModel: ContactViewModel = hiltViewModel()) {
+    val navController = rememberNavController()
+    NavHost(navController, startDestination = "contacts") {
+        composable("contacts") {
+            val contacts = viewModel.contacts.collectAsState()
+            ContactListScreen(
+                contacts = contacts.value,
+                onAddContact = { navController.navigate("add_contact") },
+                onEditContact = { contact -> navController.navigate("edit_contact/${contact.id}") },
+                onDeleteContact = { contactId -> viewModel.deleteContact(contactId) }
+            )
+        }
+        composable("add_contact") {
+            ContactDetailScreen(
+                contact = Contact(),
+                onSave = { viewModel.addContact(it); navController.popBackStack() },
+                onDelete = { navController.popBackStack() }
+            )
+        }
+        composable("edit_contact/{contactId}") { backStackEntry ->
+            val contactId = backStackEntry.arguments?.getString("contactId") ?: ""
+            val contact = viewModel.contacts.value.find { it.id == contactId } ?: Contact()
+            ContactDetailScreen(
+                contact = contact,
+                onSave = { viewModel.updateContact(it); navController.popBackStack() },
+                onDelete = { viewModel.deleteContact(contactId); navController.popBackStack() }
+            )
+        }
+    }
+}
+
+
+6. ContactListScreen
+
+package com.example.contactsapp
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.Button
+import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
+import coil.compose.rememberImagePainter
+import com.example.contactsapp.data.Contact
+
+@Composable
+fun ContactListScreen(
+    contacts: List<Contact>,
+    onAddContact: () -> Unit,
+    onEditContact: (Contact) -> Unit,
+    onDeleteContact: (String) -> Unit
+) {
+    Column {
+        Button(onClick = onAddContact) {
+            Text("Add Contact")
+        }
+        LazyColumn {
+            items(contacts) { contact ->
+                ContactItem(
+                    contact = contact,
+                    onClick = { onEditContact(contact) },
+                    onDelete = { onDeleteContact(contact.id) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ContactItem(contact: Contact, onClick: () -> Unit, onDelete: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .clickable(onClick = onClick)
+            .swipeToDelete { onDelete() }
+    ) {
+        Image(
+            painter = rememberImagePainter(contact.profileImage),
+            contentDescription = null,
+            modifier = Modifier.size(64.dp).clip(CircleShape),
+            contentScale = ContentScale.Crop
+        )
+        Column(modifier = Modifier.padding(start = 16.dp)) {
+            Text(text = contact.name, style = MaterialTheme.typography.h6)
+            Text(text = contact.phoneNumbers.joinToString(", "), style = MaterialTheme.typography.body1)
+        }
+    }
+}
+
+@Composable
+fun Modifier.swipeToDelete(onDelete: () -> Unit): Modifier {
+    // Implement swipe to delete functionality using Accompanist
+    return this
+}
+
+
+7. ContactDetailScreen
+package com.example.contactsapp
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.Button
+import androidx.compose.material.Text
+import androidx.compose.material.TextField
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.example.contactsapp.data.Contact
+
+@Composable
+fun ContactDetailScreen(
+    contact: Contact,
+    onSave: (Contact) -> Unit,
+    onDelete: (String) -> Unit
+) {
+    var name by remember { mutableStateOf(contact.name) }
+    var phoneNumbers by remember { mutableStateOf(contact.phoneNumbers.joinToString(", ")) }
+    var profileImage by remember { mutableStateOf(contact.profileImage) }
+    var bloodGroup by remember { mutableStateOf(contact.bloodGroup) }
+    var address by remember { mutableStateOf(contact.address) }
+
+    Column(Modifier.padding(16.dp)) {
+        TextField(value = name, onValueChange = { name = it }, label = { Text("Name") })
+        TextField(value = phoneNumbers, onValueChange = { phoneNumbers = it }, label = { Text("Phone Numbers") })
+        TextField(value = profileImage, onValueChange = { profileImage = it }, label = { Text("Profile Image URL") })
+        TextField(value = bloodGroup, onValueChange = { bloodGroup = it }, label = { Text("Blood Group") })
+        TextField(value = address, onValueChange = { address = it }, label = { Text("Address") })
+        
+        Row(Modifier.padding(top = 16.dp)) {
+            Button(onClick = { onSave(contact.copy(name = name, phoneNumbers = phoneNumbers.split(", "), profileImage = profileImage, bloodGroup = bloodGroup, address = address)) }) {
+                Text("Save")
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { onDelete(contact.id) }) {
+                Text("Delete")
+            }
+        }
+    }
+}
+
+
+8. Unit Test
+package com.example.contactsapp
+
+import com.example.contactsapp.data.Contact
+import com.example.contactsapp.data.ContactRepository
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.runBlockingTest
+import org.junit.Before
+import org.junit.Test
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
+import kotlin.test.assertEquals
+
+class ContactViewModelTest {
+
+    private lateinit var viewModel: ContactViewModel
+    private lateinit var repository: ContactRepository
+
+    @Before
+    fun setup() {
+        repository = mock()
+        viewModel = ContactViewModel(repository)
+    }
+
+    @Test
+    fun `verify contacts are loaded`() = runBlockingTest {
+        val contacts = listOf(Contact(id = "1", name = "John Doe"))
+        whenever(repository.getContacts()).thenReturn(flowOf(contacts))
+
+        viewModel.contacts.test {
+            assertEquals(contacts, awaitItem())
+        }
+    }
+
+    @Test
+    fun `verify addContact adds contact`() = runBlockingTest {
+        val contact = Contact(id = "1", name = "John Doe")
+        viewModel.addContact(contact)
+        verify(repository).addContact(contact)
+    }
+
+    @Test
+    fun `verify updateContact updates contact`() = runBlockingTest {
+        val contact = Contact(id = "1", name = "John Doe")
+        viewModel.updateContact(contact)
+        verify(repository).updateContact(contact)
+    }
+
+    @Test
+    fun `verify deleteContact deletes contact`() = runBlockingTest {
+        val contactId = "1"
+        viewModel.deleteContact(contactId)
+        verify(repository).deleteContact(contactId)
+    }
+}
