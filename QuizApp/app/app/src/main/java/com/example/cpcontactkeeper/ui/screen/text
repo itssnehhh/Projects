@@ -1,0 +1,286 @@
+package com.example.cpcontactkeeper.viewModel
+
+import android.net.Uri
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.cpcontactkeeper.data.model.Contact
+import com.example.cpcontactkeeper.data.repository.ContactRepository
+import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import java.util.UUID
+
+class ContactViewModel : ViewModel() {
+
+    private val _name = MutableStateFlow("")
+    val name: StateFlow<String> = _name
+
+    private val _email = MutableStateFlow("")
+    val email: StateFlow<String> = _email
+
+    private val _phoneNo = MutableStateFlow<List<String>>(emptyList())
+    val phoneNo: StateFlow<List<String>> = _phoneNo
+
+    private val _address = MutableStateFlow("")
+    val address: StateFlow<String> = _address
+
+    private val _imageUrl = MutableStateFlow("")
+    val imageUrl: StateFlow<String> = _imageUrl
+
+    private val _bloodGroup = MutableStateFlow("A+")
+    val bloodGroup: StateFlow<String> = _bloodGroup
+
+    private val _expanded = MutableStateFlow(false)
+    val expanded: StateFlow<Boolean> = _expanded
+
+    val bloodGroups = listOf("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
+
+    fun onNameChange(newName: String) {
+        _name.value = newName
+    }
+
+    fun onEmailChange(newEmail: String) {
+        _email.value = newEmail
+    }
+
+    fun onPhoneNumberChange(index: Int, newPhoneNo: String) {
+        _phoneNo.value = _phoneNo.value.toMutableList().apply { this[index] = newPhoneNo }
+    }
+
+    fun addPhoneNumberField() {
+        _phoneNo.value = _phoneNo.value + ""
+    }
+
+    fun onAddressChange(newAddress: String) {
+        _address.value = newAddress
+    }
+
+    fun onImageUrlChange(newImageUrl: String) {
+        _imageUrl.value = newImageUrl
+    }
+
+    fun onExpandedChange(expand: Boolean) {
+        _expanded.value = expand
+    }
+
+    fun uploadImageToFirebase(uri: Uri, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
+        val storageRef = FirebaseStorage.getInstance().reference
+        val imageRef = storageRef.child("images/${UUID.randomUUID()}.jpg")
+        val uploadTask = imageRef.putFile(uri)
+        uploadTask.addOnSuccessListener {
+            imageRef.downloadUrl.addOnSuccessListener { uri ->
+                onSuccess(uri.toString())
+            }.addOnFailureListener { exception ->
+                onFailure(exception)
+            }
+        }.addOnFailureListener { exception ->
+            onFailure(exception)
+        }
+    }
+
+    fun addContact(contact: Contact) {
+        viewModelScope.launch {
+            // Add your logic to save the contact in Firestore
+        }
+    }
+}
+package com.example.cpcontactkeeper.ui.screen
+
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Done
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import coil.compose.rememberAsyncImagePainter
+import com.example.cpcontactkeeper.R
+import com.example.cpcontactkeeper.data.model.Contact
+import com.example.cpcontactkeeper.viewModel.ContactViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.util.UUID
+import kotlin.math.roundToInt
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ContactAddScreen(contactViewModel: ContactViewModel, navController: NavHostController) {
+
+    val context = LocalContext.current
+    val name by contactViewModel.name.collectAsState()
+    val email by contactViewModel.email.collectAsState()
+    val phoneNo by contactViewModel.phoneNo.collectAsState(emptyList())
+    val address by contactViewModel.address.collectAsState()
+    val imageUrl by contactViewModel.imageUrl.collectAsState()
+    val expanded by contactViewModel.expanded.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+    val (isComplete, setIsComplete) = remember { mutableStateOf(false) }
+    val imageUri = remember { mutableStateOf<Uri?>(null) }
+    
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            contactViewModel.uploadImageToFirebase(it,
+                onSuccess = { url ->
+                    contactViewModel.onImageUrlChange(url)
+                    Toast.makeText(context, "Image uploaded successfully", Toast.LENGTH_SHORT).show()
+                },
+                onFailure = { exception ->
+                    Toast.makeText(context, "Image upload failed: ${exception.message}", Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { },
+                colors = TopAppBarDefaults.topAppBarColors(Color(0xFF45C5FF)),
+            )
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.Center
+        ) {
+            item {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .clickable {
+                            launcher.launch("image/*")
+                        }
+                ) {
+                    Image(
+                        painter = if (imageUrl.isEmpty()) {
+                            painterResource(id = R.drawable.add_photo)
+                        } else {
+                            rememberAsyncImagePainter(model = imageUrl)
+                        },
+                        contentScale = ContentScale.Crop,
+                        contentDescription = "",
+                        modifier = Modifier
+                            .size(120.dp)
+                            .padding(8.dp)
+                            .border(1.dp, Color.DarkGray, CircleShape)
+                            .clip(CircleShape)
+                    )
+                }
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(20.dp)
+                )
+
+                DetailTextFields(
+                    value = name,
+                    valueChange = { contactViewModel.onNameChange(it) },
+                    label = "Name"
+                )
+
+                phoneNo.forEachIndexed { index, phoneNo ->
+                    DetailTextFields(
+                        value = phoneNo,
+                        valueChange = { contactViewModel.onPhoneNumberChange(index, it) },
+                        label = "Phone no.",
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                }
+
+                Button(
+                    onClick = { contactViewModel.addPhoneNumberField() },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(text = "Add Phone Number")
+                }
+                DetailTextFields(
+                    value = email,
+                    valueChange = { contactViewModel.onEmailChange(it) },
+                    label = "Email"
+                )
+                // Add more fields as necessary
+            }
+        }
+    }
+}
+
+
+fun deleteContact(contactId: String) {
+    viewModelScope.launch {
+        try {
+            FirestoreService.deleteContact(contactId)
+            Log.d("ContactViewModel", "Contact with ID $contactId deleted successfully")
+        } catch (e: Exception) {
+            Log.e("ContactViewModel", "Failed to delete contact with ID $contactId", e)
+        }
+    }
+}
+
+Button(
+    onClick = { 
+        Log.d("ContactViewModel", "Delete button clicked for contact ID: ${it.id}")
+        viewModel.deleteContact(it.id) 
+    },
+    colors = ButtonDefaults.buttonColors(Color.Red),
+    modifier = Modifier.padding(16.dp)
+) {
+    Text(text = "Delete Account")
+}
+
+object FirestoreService {
+    private val firestore = FirebaseFirestore.getInstance()
+
+    fun deleteContact(contactId: String) {
+        firestore.collection("contacts").document(contactId)
+            .delete()
+            .addOnSuccessListener {
+                Log.d("FirestoreService", "Contact successfully deleted!")
+            }
+            .addOnFailureListener { e ->
+                Log.w("FirestoreService", "Error deleting contact", e)
+            }
+    }
+}
