@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">CP Contact Keeper</string>
+    <string name="select_blood_group">Select Blood Group</string>
+    <string-array name="bloodGroupArray">
+        <item>A+</item>
+        <item>A-</item>
+        <item>B+</item>
+        <item>B-</item>
+        <item>O+</item>
+        <item>O-</item>
+        <item>AB+</item>
+        <item>AB-</item>
+    </string-array>
+</resources>
