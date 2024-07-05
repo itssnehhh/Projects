@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "75575901045",
-    "project_id": "contact-keeper-bf6fa",
-    "storage_bucket": "contact-keeper-bf6fa.appspot.com"
+    "project_number": "1066877178610",
+    "project_id": "cp-contact-keeper",
+    "storage_bucket": "cp-contact-keeper.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:75575901045:android:ba3ba0f640dd46e9b0713c",
+        "mobilesdk_app_id": "1:1066877178610:android:46587c7eed85f31144766b",
         "android_client_info": {
           "package_name": "com.example.cpcontactkeeper"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyC1hHymRjthkYcZiBtYrHyvz7qBzpMwROo"
+          "current_key": "AIzaSyAu5xxFP4L4Od8ynu59RtTHTdlChZfS5Os"
         }
       ],
       "services": {

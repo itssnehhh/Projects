@@ -1,5 +1,6 @@
-package com.example.cpcontactkeeper.ui.screen
+package com.example.cpcontactkeeper.ui.screen.detail
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,21 +33,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.example.cpcontactkeeper.R
-import com.example.cpcontactkeeper.viewModel.ContactViewModel
+import coil.compose.rememberAsyncImagePainter
+import com.example.cpcontactkeeper.ui.screen.CONSTANTS
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DetailScreen(navController: NavHostController, viewModel: ContactViewModel, contactId: String) {
+fun DetailScreen(
+    navController: NavHostController,
+    viewModel: DetailViewModel,
+    contactId: String?,
+) {
 
-    val contact by viewModel.selectedContact.collectAsState()
+    val contact by viewModel.selectedContact.collectAsState(initial = null)
+    val context = LocalContext.current
 
     LaunchedEffect(contactId) {
-        viewModel.fetchContactById(contactId)
+        if (contactId != null) {
+            viewModel.fetchContactById(contactId)
+        }
     }
     Scaffold(
         topBar = {
@@ -64,9 +71,7 @@ fun DetailScreen(navController: NavHostController, viewModel: ContactViewModel, 
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "",
                         modifier = Modifier
-                            .clickable {
-                                navController.navigate(CONSTANTS.HOME_SCREEN)
-                            }
+                            .clickable { navController.navigate(CONSTANTS.HOME_SCREEN) }
                             .padding(8.dp)
                     )
                 }
@@ -83,8 +88,8 @@ fun DetailScreen(navController: NavHostController, viewModel: ContactViewModel, 
             item {
                 contact?.let {
                     Image(
-                        contentScale = ContentScale.FillBounds,
-                        painter = painterResource(id = R.drawable.ic_launcher_background),
+                        contentScale = ContentScale.Crop,
+                        painter = rememberAsyncImagePainter(model = it.profilePicture),
                         contentDescription = "",
                         modifier = Modifier
                             .padding(20.dp)
@@ -92,7 +97,10 @@ fun DetailScreen(navController: NavHostController, viewModel: ContactViewModel, 
                     )
                     DetailCard(label = "Name", value = it.name)
                     DetailCard(label = "Email", value = it.email)
-                    DetailCard(label = "Phone no.", value = it.phoneNumber.firstOrNull() ?: "No phone number")
+                    DetailCard(
+                        label = "Phone no.",
+                        value = it.phoneNumber.toString()
+                    )
                     DetailCard(label = "Blood Group", value = it.bloodGroup)
                     DetailCard(label = "Address", value = it.address)
 
@@ -103,7 +111,10 @@ fun DetailScreen(navController: NavHostController, viewModel: ContactViewModel, 
                     )
 
                     Button(
-                        onClick = { viewModel.deleteContact(it.id) },
+                        onClick = {
+                            viewModel.deleteContact(it.id)
+                            Toast.makeText(context, "Data deleted successfully", Toast.LENGTH_SHORT).show()
+                        },
                         colors = ButtonDefaults.buttonColors(Color.Red),
                         modifier = Modifier.padding(16.dp)
                     ) {
@@ -140,5 +151,9 @@ fun DetailCard(label: String, value: String) {
 @Preview
 @Composable
 fun DetailScreenPreview() {
-    DetailScreen(NavHostController(LocalContext.current), ContactViewModel(LocalContext.current), "contactId")
+    DetailScreen(
+        NavHostController(LocalContext.current),
+        DetailViewModel(),
+        ""
+    )
 }
