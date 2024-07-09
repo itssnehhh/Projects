@@ -1,0 +1,59 @@
+package com.example.contactkeeper.data.firestore
+
+import android.util.Log
+import com.example.contactkeeper.data.model.Contact
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+
+object FireStoreService {
+
+
+    private val db = FirebaseFirestore.getInstance()
+    private val contactsCollection = db.collection("contacts")
+
+
+    fun getContacts(): Flow<List<Contact>> = callbackFlow {
+        val listener = contactsCollection.addSnapshotListener { value, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+            val contacts = value?.toObjects(Contact::class.java) ?: listOf()
+            trySend(contacts).isSuccess
+        }
+        awaitClose { listener.remove() }
+    }
+
+    fun addContact(contact: Contact) {
+        contactsCollection.add(contact)
+            .addOnSuccessListener { documentReference ->
+                Log.d("ADD", "ContactSnapshot added with ID: ${documentReference.id}")
+            }
+            .addOnFailureListener { e ->
+                Log.w("ADD", "Error adding contact", e)
+            }
+    }
+
+    fun updateContact(contact: Contact) {
+        contactsCollection.document(contact.id)
+            .set(contact)
+            .addOnSuccessListener {
+                Log.d("UPDATE-SUCCESS", "Contact successfully updated!")
+            }.addOnFailureListener {
+                Log.d("UPDATE-FAIL", "Contact failed to updated!")
+            }
+    }
+
+    fun deleteContact(contactId: String) {
+        contactsCollection.document(contactId)
+            .delete()
+            .addOnSuccessListener {
+                Log.d("FireStoreService", "Contact successfully deleted!")
+            }
+            .addOnFailureListener { e ->
+                Log.w("FireStoreService", "Error deleting contact", e)
+            }
+    }
+}

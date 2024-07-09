@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Contact Keeper</string>
+    <string name="select_blood_group">Select blood Group</string>
+    <string name="item_removed">contact deleted successfully</string>
+
+    <string-array name="bloodGroupArray">
+        <item>A+</item>
+        <item>A-</item>
+        <item>B+</item>
+        <item>B-</item>
+        <item>AB+</item>
+        <item>AB-</item>
+        <item>O+</item>
+        <item>O-</item>
+    </string-array>
+</resources>
