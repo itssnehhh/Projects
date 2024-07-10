@@ -1,16 +1,15 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    id("com.google.gms.google-services")
 }
 
 android {
-    namespace = "com.example.contactkeeper"
+    namespace = "com.example.standupapplication"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.contactkeeper"
-        minSdk = 25
+        applicationId = "com.example.standupapplication"
+        minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -52,15 +51,9 @@ android {
 
 dependencies {
 
-    //Firebase BOM
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.analytics)
+    //Lottie Animation
+    implementation(libs.lottie.compose)
 
-    //FireStore
-    implementation(libs.firebase.firestore)
-
-    //Coil Library
-    implementation("io.coil-kt:coil-compose:2.6.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -70,10 +63,6 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.compose.material)
-    implementation(libs.androidx.runtime.livedata)
-    implementation(libs.firebase.storage.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

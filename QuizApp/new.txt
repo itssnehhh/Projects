@@ -1,0 +1,429 @@
+package com.example.standupapplication.notification
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.content.Intent
+import androidx.core.app.NotificationCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.example.standupapplication.R
+
+object NotificationHelper {
+
+    private const val CHANNEL_ID = "Reminder Channel"
+    const val ACTION_SHOW_ANIMATION = "com.example.standupapplication.SHOW_ANIMATION"
+
+    fun displayNotification(context: Context, message: String) {
+        createNotificationChannel(context)
+
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.walk)
+            .setContentTitle("Reminder")
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .build()
+
+        notificationManager.notify(1, notification)
+
+        // Broadcast an intent to start animation
+        val intent = Intent(ACTION_SHOW_ANIMATION)
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
+    }
+
+    private fun createNotificationChannel(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "Reminder Channel"
+            val descriptionText = "Channel for reminder notifications"
+            val importance = NotificationManager.IMPORTANCE_HIGH
+
+            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
+                description = descriptionText
+            }
+
+            val notificationManager: NotificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+}
+
+package com.example.standupapplication.receiver
+
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.media.RingtoneManager
+import android.media.Ringtone
+import com.example.standupapplication.notification.NotificationHelper
+import java.util.Calendar
+
+class AlarmReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent?) {
+        NotificationHelper.displayNotification(context, "Time to stand up and walk!")
+
+        // Play sound
+        val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+        val ringtone = RingtoneManager.getRingtone(context, alarmUri)
+        ringtone.play()
+    }
+}
+
+fun scheduleAlarm(context: Context, calendar: Calendar) {
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val alarmIntent = Intent(context, AlarmReceiver::class.java).let { intent ->
+        PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+    }
+    alarmManager.setRepeating(
+        AlarmManager.RTC_WAKEUP,
+        calendar.timeInMillis,
+        AlarmManager.INTERVAL_FIFTEEN_MINUTES,
+        alarmIntent
+    )
+}
+
+fun cancelAlarm(context: Context) {
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val alarmIntent = Intent(context, AlarmReceiver::class.java).let { intent ->
+        PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+    }
+    alarmManager.cancel(alarmIntent)
+}
+package com.example.standupapplication.ui.screen
+
+import android.annotation.SuppressLint
+import android.app.TimePickerDialog
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.airbnb.lottie.compose.*
+import com.example.standupapplication.R
+import com.example.standupapplication.notification.NotificationHelper
+import com.example.standupapplication.receiver.cancelAlarm
+import com.example.standupapplication.receiver.scheduleAlarm
+import kotlinx.coroutines.delay
+import java.util.*
+import java.util.concurrent.TimeUnit
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen() {
+    val context = LocalContext.current
+    var alarmEnabled by remember { mutableStateOf(false) }
+    var reminderTime by remember { mutableStateOf(Calendar.getInstance()) }
+    var remainingTime by remember { mutableStateOf(calculateRemainingTime(reminderTime)) }
+    var elapsedStartTime by remember { mutableStateOf<Long?>(null) }
+    var elapsedEndTime by remember { mutableStateOf<Long?>(null) }
+    var elapsedTime by remember { mutableStateOf("00:00:00") }
+    var shouldAnimate by remember { mutableStateOf(false) }
+
+    val calendar = Calendar.getInstance()
+    val hourOfDay = calendar[Calendar.HOUR_OF_DAY]
+    val minute = calendar[Calendar.MINUTE]
+
+    val time = remember { mutableStateOf("") }
+
+    val timePickerDialog = TimePickerDialog(
+        context,
+        { _, mHour: Int, mMinute: Int ->
+            reminderTime.set(Calendar.HOUR_OF_DAY, mHour)
+            reminderTime.set(Calendar.MINUTE, mMinute)
+            time.value = "$mHour:$mMinute"
+        }, hourOfDay, minute, false
+    )
+
+    LaunchedEffect(alarmEnabled) {
+        while (alarmEnabled) {
+            remainingTime = calculateRemainingTime(reminderTime)
+            if (elapsedStartTime != null) {
+                elapsedTime = calculateElapsedTime(elapsedStartTime!!)
+            }
+            delay(1000L)
+        }
+    }
+
+    DisposableEffect(Unit) {
+        val animationReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                shouldAnimate = true
+            }
+        }
+
+        LocalBroadcastManager.getInstance(context).registerReceiver(
+            animationReceiver, IntentFilter(NotificationHelper.ACTION_SHOW_ANIMATION)
+        )
+
+        onDispose {
+            LocalBroadcastManager.getInstance(context).unregisterReceiver(animationReceiver)
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(Color(0xFF2E159C)),
+                title = {
+                    Text(
+                        fontWeight = FontWeight.Bold,
+                        text = stringResource(id = R.string.app_name),
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
+            )
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .background(Color(0xFFDADFF8))
+        ) {
+            item {
+                val composition by rememberLottieComposition(
+                    LottieCompositionSpec.RawRes(R.raw.anim1)
+                )
+                LottieAnimation(
+                    composition = composition,
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .border(2.dp, Color.Gray),
+                    isPlaying = shouldAnimate,
+                    iterations = LottieConstants.IterateForever
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(
+                        colors = ButtonDefaults.buttonColors(Color(0xFF2E159C)),
+                        onClick = {
+                            alarmEnabled = false
+                            elapsedStartTime = null
+                            elapsedEndTime = null
+                            elapsedTime = "00:00:00"
+                            remainingTime = "00:00:00"
+                            cancelAlarm(context)
+                        },
+                        modifier = Modifier
+                            .padding(horizontal = 24.dp, vertical = 4.dp)
+                    ) {
+                        Text(text = "Reset")
+                    }
+
+                    Button(
+                        colors = ButtonDefaults.buttonColors(Color(0xFF2E159C)),
+                        onClick = {
+                            if (alarmEnabled) {
+                                elapsedEndTime = System.currentTimeMillis()
+                            } else {
+                                elapsedStartTime = System.currentTimeMillis()
+                                scheduleAlarm(context, reminderTime)
+                            }
+                            alarmEnabled = !alarmEnabled
+                        },
+                        modifier = Modifier
+                            .padding(horizontal = 24.dp, vertical = 4.dp)
+                    ) {
+                        Text(text = if (alarmEnabled) "Stop" else "Start")
+                    }
+                }
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .border(1.dp, Color.LightGray, CardDefaults.shape),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    colors = CardDefaults.cardColors(Color(0xFF3F1EBB))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = " Alarm Mode",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp)
+                        )
+                        Switch(
+                            checked = alarmEnabled,
+                            onCheckedChange = {
+                                alarmEnabled = !alarmEnabled
+                                if (alarmEnabled) {
+                                    elapsedStartTime = System.currentTimeMillis()
+                                    scheduleAlarm(context, reminderTime)
+                                } else {
+                                    elapsedEndTime = System.currentTimeMillis()
+                                    cancelAlarm(context)
+                                }
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFF2E159C),
+                                uncheckedThumbColor = Color(0xFFDADFF8),
+                                uncheckedTrackColor = Color.White
+                            )
+                        )
+                    }
+                }
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .border(1.dp, Color.LightGray, CardDefaults.shape),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    colors = CardDefaults.cardColors(Color(0xFF3F1EBB))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Set Alarm Time",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White
+                            )
+                            Button(
+                                colors = ButtonDefaults.buttonColors(Color(0xFF2E159C)),
+                                onClick = {
+                                    timePickerDialog.show()
+                                }
+                            ) {
+                                Text(text = "Time Picker", color = Color.White)
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Start time: ",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White
+                            )
+                            Text(
+                                text = time.value,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .border(1.dp, Color.LightGray, CardDefaults.shape),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    colors = CardDefaults.cardColors(Color(0xFF3F1EBB))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Remaining Time: ",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White
+                            )
+                            Text(
+                                text = remainingTime,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Elapsed Time: ",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White
+                            )
+                            Text(
+                                text = elapsedTime,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun calculateRemainingTime(reminderTime: Calendar): String {
+    val now = Calendar.getInstance()
+    val diff = reminderTime.timeInMillis - now.timeInMillis
+    val hours = TimeUnit.MILLISECONDS.toHours(diff)
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(diff) % 60
+    val seconds = TimeUnit.MILLISECONDS.toSeconds(diff) % 60
+    return String.format("%02d:%02d:%02d", hours, minutes, seconds)
+}
+
+private fun calculateElapsedTime(startTime: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = now - startTime
+    val hours = TimeUnit.MILLISECONDS.toHours(diff)
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(diff) % 60
+    val seconds = TimeUnit.MILLISECONDS.toSeconds(diff) % 60
+    return String.format("%02d:%02d:%02d", hours, minutes, seconds)
+}
