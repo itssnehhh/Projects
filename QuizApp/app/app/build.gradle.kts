@@ -1,17 +1,16 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    id("kotlin-kapt")
-    id("com.google.dagger.hilt.android")
+    id("com.google.gms.google-services")
 }
 
 android {
-    namespace = "com.example.universitydirectoryapplication"
+    namespace = "com.example.contactkeeper"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.universitydirectoryapplication"
-        minSdk = 24
+        applicationId = "com.example.contactkeeper"
+        minSdk = 25
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -50,22 +49,18 @@ android {
         }
     }
 }
-kapt {
-    correctErrorTypes = true
-}
 
 dependencies {
 
-    // Retrofit
-    implementation(libs.retrofit)
-    implementation(libs.converterGson)
+    //Firebase BOM
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
 
-    //Dagger-Hilt
-    implementation(libs.hilt.android)
-    implementation(libs.testng)
-    implementation(libs.androidx.hilt.navigation.fragment)
-    kapt(libs.hilt.android.compiler)
-    implementation(libs.androidx.hilt.navigation.compose)
+    //FireStore
+    implementation(libs.firebase.firestore)
+
+    //Coil Library
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     // Test
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -84,13 +79,14 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.compose.material)
+    implementation(libs.androidx.runtime.livedata)
+    implementation(libs.firebase.storage.ktx)
     testImplementation(libs.junit)
-    implementation(libs.androidx.junit.ktx)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-
 }

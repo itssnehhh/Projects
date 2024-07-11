@@ -1,48 +1,22 @@
 <resources>
-    <string name="app_name">University Directory Application</string>
-    <string name="university_directory">University Directory</string>
-    <string name="top_university">Top University</string>
-    <string name="category">Category</string>
-    <string name="articles">Articles</string>
-    <string name="pin">📍 %1$s</string>
+    <string name="app_name">Contact Keeper</string>
+    <string name="select_blood_group">Select blood Group</string>
+    <string name="item_removed">contact deleted successfully</string>
+    <string name="btn_save">SAVE</string>
+    <string name="btn_update">Update</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete_contact">Contact Delete</string>
+    <string name="delete_detail_message">Aye you sure you want to delete this contact ?</string>
 
-    <string-array name="articlesList">
-        <item>Donald Trump\'s youngest son, Barron, is currently exploring universities to attend. Having graduated from high school last month, Barron has been applying to various colleges and, according to his father, was accepted at all the institutions he applied to. In a recent Fox News interview, Trump stated that Barron\'s college search has been impacted by the recent pro-Palestinian protests and "rioting" occurring on campuses nationwide.</item>
-        <item>Hyderabad: Jawaharlal Nehru Technological University (JNTU) Hyderabad has cautioned its students against organising sudden protests or rallies that could disrupt the campus’s academic environment.The circular was issued in response to recent student protests regarding issues like the withholding of hall tickets due to delays in fee reimbursements and mess dues.However, a member of the JNTU-Hyderabad Protection Force, Rahul Nayak, criticized the university’s circular as threatening, arguing that the university was violating fundamental rights provided in the Constitution</item>
-        <item>However, a member of the JNTU-Hyderabad Protection Force, Rahul Nayak, criticized the university’s circular as threatening, arguing that the university was violating fundamental rights provided in the Constitution.</item>
-    </string-array>
-
-    <string-array name="categoryList">
-        <item>Computer\nScience</item>
-        <item>Medicine</item>
-        <item>Business\nManagement</item>
-        <item>Architecture</item>
-        <item>Law</item>
-        <item>Art &amp;\nDesign</item>
-    </string-array>
-
-    <string-array name="universityTitleList">
-        <item>Stanford University United States</item>
-        <item>Howard University</item>
-        <item>Magdalen College, Oxford University</item>
-    </string-array>
-
-    <string-array name="universityCityList">
-        <item>United States</item>
-        <item>United States</item>
-        <item>United Kingdom</item>
-    </string-array>
-
-    <string-array name="countryList">
-        <item>Afghanistan</item>
-        <item>Cambodia</item>
-        <item>Canada</item>
-        <item>France</item>
-        <item>Germany</item>
-        <item>India</item>
-        <item>Philippines</item>
-        <item>United Kingdom</item>
-        <item>United States</item>
-        <item>Vietnam</item>
+    <string-array name="bloodGroupArray">
+        <item>A+</item>
+        <item>A-</item>
+        <item>B+</item>
+        <item>B-</item>
+        <item>AB+</item>
+        <item>AB-</item>
+        <item>O+</item>
+        <item>O-</item>
     </string-array>
 </resources>

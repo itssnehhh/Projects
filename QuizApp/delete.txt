@@ -1,0 +1,101 @@
+fun uploadImageToFirebase(
+    uri: Uri,
+    onSuccess: (String) -> Unit,
+    onFailure: (Exception) -> Unit
+) {
+    val storageRef = FirebaseStorage.getInstance().reference
+    val imageRef = storageRef.child("images/${System.currentTimeMillis()}.jpg")
+    val uploadTask = imageRef.putFile(uri)
+    uploadTask.addOnSuccessListener {
+        imageRef.downloadUrl.addOnSuccessListener { downloadUri ->
+            onSuccess(downloadUri.toString())
+        }.addOnFailureListener { exception ->
+            onFailure(exception)
+        }
+    }.addOnFailureListener { exception ->
+        onFailure(exception)
+    }
+}
+
+fun deleteImageFromFirebase(imageUrl: String) {
+    val storageRef = FirebaseStorage.getInstance().getReferenceFromUrl(imageUrl)
+    storageRef.delete()
+        .addOnSuccessListener {
+            // Image deleted successfully
+        }
+        .addOnFailureListener { exception ->
+            // Handle any errors here
+        }
+}
+
+
+fun addContact(contact: Contact) {
+    viewModelScope.launch {
+        withContext(Dispatchers.IO) {
+            // Upload image first
+            uploadImageToFirebase(
+                Uri.parse(contact.profilePicture),
+                onSuccess = { imageUrl ->
+                    contact.profilePicture = imageUrl
+                    FireStoreService.addContact(contact)
+                },
+                onFailure = { exception ->
+                    // Handle upload failure
+                }
+            )
+        }
+    }
+}
+
+private fun updateContact(contact: Contact) {
+    viewModelScope.launch {
+        withContext(Dispatchers.IO) {
+            // Upload image first if it's changed
+            if (contact.profilePicture.startsWith("content://")) {
+                uploadImageToFirebase(
+                    Uri.parse(contact.profilePicture),
+                    onSuccess = { imageUrl ->
+                        contact.profilePicture = imageUrl
+                        FireStoreService.updateContact(contact)
+                    },
+                    onFailure = { exception ->
+                        // Handle upload failure
+                    }
+                )
+            } else {
+                FireStoreService.updateContact(contact)
+            }
+        }
+    }
+}
+
+
+val launcher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.GetContent()
+) { uri: Uri? ->
+    uri?.let {
+        viewModel.uploadImageToFirebase(it,
+            onSuccess = { imageUrl ->
+                viewModel.onImageUrlChange(imageUrl)
+                Toast.makeText(
+                    context,
+                    "Image uploaded successfully",
+                    Toast.LENGTH_SHORT
+                ).show()
+            },
+            onFailure = { exception ->
+                Toast.makeText(
+                    context,
+                    "Image upload failed: ${exception.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        )
+    }
+}
+
+fun onDeleteContact(contactID: String) {
+    viewModel.deleteImageFromFirebase(imageUrl) // Replace imageUrl with the actual image URL stored in Firestore
+    viewModel.deleteContact(contactID)
+    navController.popBackStack()
+}
