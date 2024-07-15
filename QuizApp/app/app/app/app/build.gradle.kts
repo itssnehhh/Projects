@@ -1,18 +1,17 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    id("com.google.gms.google-services")
-    id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
+    id("kotlin-kapt")
 }
 
 android {
-    namespace = "com.example.contactkeeper"
+    namespace = "com.example.musicplayer"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.contactkeeper"
-        minSdk = 25
+        applicationId = "com.example.musicplayer"
+        minSdk = 29
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -51,35 +50,18 @@ android {
         }
     }
 }
-kapt{
-    correctErrorTypes = true
-}
+
 
 dependencies {
 
-    //Firebase BOM
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.analytics)
-
-    //FireStore
-    implementation(libs.firebase.firestore)
-
-    //Dagger-Hilt
-    implementation(libs.hilt.android)
-    implementation(libs.androidx.hilt.navigation.fragment)
-    kapt(libs.hilt.android.compiler)
-    implementation(libs.androidx.hilt.navigation.compose)
-
-    //Coil Library
+    // Hilt
+    val hilt = "2.50"
+    implementation("com.google.dagger:hilt-android:$hilt")
+    kapt("com.google.dagger:hilt-compiler:$hilt")
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
     implementation("io.coil-kt:coil-compose:2.6.0")
 
-    // Test
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.mockito.kotlin)
-    testImplementation(libs.mockito.inline)
-    testImplementation(libs.mockito.core)
-    implementation(libs.guava)
+    implementation("androidx.media:media:1.6.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -90,9 +72,6 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.compose.material)
-    implementation(libs.androidx.runtime.livedata)
-    implementation(libs.firebase.storage.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
