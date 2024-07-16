@@ -1,0 +1,294 @@
+package com.example.standupapplication.receiver
+
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.media.RingtoneManager
+import com.example.standupapplication.notification.NotificationHelper
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+class AlarmReceiver : BroadcastReceiver() {
+
+    override fun onReceive(context: Context, intent: Intent?) {
+        NotificationHelper.displayNotification(context, "Time to stand up and walk!")
+
+        val coroutineScope = CoroutineScope(Dispatchers.IO)
+        val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+        val ringtone = RingtoneManager.getRingtone(context, alarmUri)
+
+        coroutineScope.launch {
+            ringtone.play()
+            delay(5000)
+            ringtone.stop()
+        }
+
+        // Reschedule the alarm to repeat every fifteen minutes
+        scheduleNextAlarm(context)
+    }
+
+    private fun scheduleNextAlarm(context: Context) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val alarmIntent = Intent(context, AlarmReceiver::class.java).let { intent ->
+            PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+        }
+        val triggerTime = System.currentTimeMillis() + AlarmManager.INTERVAL_FIFTEEN_MINUTES
+        alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, alarmIntent)
+    }
+}
+
+fun scheduleAlarm(context: Context, calendar: Calendar) {
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val alarmIntent = Intent(context, AlarmReceiver::class.java).let { intent ->
+        PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+    }
+    alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, alarmIntent)
+}
+
+fun cancelAlarm(context: Context) {
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val alarmIntent = Intent(context, AlarmReceiver::class.java).let { intent ->
+        PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+    }
+    alarmManager.cancel(alarmIntent)
+}
+
+@Composable
+fun HomeScreen() {
+    val context = LocalContext.current
+    var alarmEnabled by rememberSaveable { mutableStateOf(false) }
+    val reminderTime by rememberSaveable { mutableStateOf(Calendar.getInstance()) }
+    var remainingTime by rememberSaveable { mutableStateOf(calculateRemainingTime(reminderTime)) }
+    var elapsedStartTime by rememberSaveable { mutableStateOf<Long?>(null) }
+    var elapsedTime by rememberSaveable { mutableStateOf(context.getString(R.string.reset_time)) }
+    val time = rememberSaveable { mutableStateOf("") }
+
+    val calendar = Calendar.getInstance()
+    val hourOfDay = calendar[Calendar.HOUR]
+    val minute = calendar[Calendar.MINUTE]
+
+    val timePickerDialog = TimePickerDialog(
+        context,
+        { _, mHour: Int, mMinute: Int ->
+            val selectedTime = Calendar.getInstance().apply {
+                set(Calendar.HOUR, mHour)
+                set(Calendar.MINUTE, mMinute)
+                set(Calendar.SECOND, 0)
+            }
+
+            if (selectedTime.after(Calendar.getInstance())) {
+                reminderTime.timeInMillis = selectedTime.timeInMillis
+                time.value = String.format("%02d:%02d:00", mHour, mMinute)
+                elapsedStartTime = selectedTime.timeInMillis
+                remainingTime = calculateRemainingTime(reminderTime)
+
+                if (alarmEnabled && remainingTime == context.getString(R.string.reset_time)) {
+                    scheduleAlarm(context, reminderTime)
+                    elapsedStartTime = System.currentTimeMillis()
+                }
+            }
+        }, hourOfDay, minute, false
+    )
+
+    LaunchedEffect(alarmEnabled) {
+        while (alarmEnabled) {
+            remainingTime = calculateRemainingTime(reminderTime)
+            if (elapsedStartTime != null) {
+                elapsedTime = calculatedElapsedTime(elapsedStartTime!!)
+            }
+            delay(1000L)
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(Color(0xFF2E159C)),
+                title = {
+                    Text(
+                        fontWeight = FontWeight.Bold,
+                        text = stringResource(id = R.string.app_name),
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
+            )
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .background(Color(0xFFDADFF8))
+        ) {
+            item {
+                val composition by rememberLottieComposition(
+                    LottieCompositionSpec.RawRes(R.raw.anim1)
+                )
+                LottieAnimation(
+                    composition = composition, modifier = Modifier
+                        .padding(16.dp)
+                        .border(2.dp, Color.Gray)
+                        .aspectRatio(12 / 9f)
+                )
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .border(1.dp, Color.LightGray, CardDefaults.shape),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    colors = CardDefaults.cardColors(Color(0xFF3F1EBB))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.alarm_mode),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp)
+                        )
+                        Switch(
+                            checked = alarmEnabled,
+                            onCheckedChange = {
+                                if (alarmEnabled) {
+                                    cancelAlarm(context)
+                                    alarmEnabled = false
+                                    elapsedStartTime = null
+                                    elapsedTime = context.getString(R.string.reset_time)
+                                    remainingTime = context.getString(R.string.reset_time)
+                                } else {
+                                    scheduleAlarm(context, reminderTime)
+                                    alarmEnabled = true
+                                }
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                uncheckedThumbColor = Color.DarkGray,
+                                checkedTrackColor = Color.DarkGray,
+                                uncheckedTrackColor = Color.White,
+                                checkedBorderColor = Color.LightGray,
+                                uncheckedBorderColor = Color.DarkGray
+                            )
+                        )
+                    }
+                }
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .border(1.dp, Color.LightGray, CardDefaults.shape),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    colors = CardDefaults.cardColors(Color(0xFF3F1EBB))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.tv_select_the_timer),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Image(
+                            painter = painterResource(id = R.drawable.timer),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clickable {
+                                    timePickerDialog.show()
+                                }
+                        )
+                    }
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.tv_total_elapsed_time),
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = elapsedTime,
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.tv_remaining_time),
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = remainingTime,
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@SuppressLint("DefaultLocale")
+fun calculatedElapsedTime(startTime: Long): String {
+    val currentTime = System.currentTimeMillis()
+    val difference = currentTime - startTime
+    return if (difference > 0) {
+        String.format(
+            "%02d:%02d:%02d",
+            difference / 3600000,
+            (difference % 3600000) / 60000,
+            (difference % 60000) / 1000
+        )
+    } else {
+        "00:00:00"
+    }
+}
+
+@SuppressLint("DefaultLocale")
+fun calculateRemainingTime(calendar: Calendar): String {
+    val currentTime = System.currentTimeMillis()
+    val difference = calendar.timeInMillis - currentTime
+
+    return if (difference > 0) {
+        String.format(
+            "%02d:%02d:%02d",
+            difference / 3600000,
+            (difference % 3600000) / 60000,
+            (difference % 60000) / 1000
+        )
+    } else {
+        "00:00:00"
+    }
+}
+
+@Preview
+@Composable
+fun HomeScreenPreview() {
+    HomeScreen()
+}
