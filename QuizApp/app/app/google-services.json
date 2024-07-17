@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "255500970074",
-    "project_id": "p-27-contact-keeper-7eec9",
-    "storage_bucket": "p-27-contact-keeper-7eec9.appspot.com"
+    "project_number": "148331872445",
+    "project_id": "fir-auth-practice-c9d15",
+    "storage_bucket": "fir-auth-practice-c9d15.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:255500970074:android:03cb2324be59258c421063",
+        "mobilesdk_app_id": "1:148331872445:android:f9e3466ce3e4cd498af7d4",
         "android_client_info": {
-          "package_name": "com.example.contactkeeper"
+          "package_name": "com.example.firebaseauth"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBVWOOPNZg5_NnSLMm1aQU0cfxNqnbWvxo"
+          "current_key": "AIzaSyAivdwgukC-tIlFU7gkIU2bgN_qe22Iubg"
         }
       ],
       "services": {

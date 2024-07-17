@@ -2,17 +2,15 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     id("com.google.gms.google-services")
-    id("kotlin-kapt")
-    id("com.google.dagger.hilt.android")
 }
 
 android {
-    namespace = "com.example.contactkeeper"
+    namespace = "com.example.firebaseauth"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.contactkeeper"
-        minSdk = 25
+        applicationId = "com.example.firebaseauth"
+        minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -51,35 +49,12 @@ android {
         }
     }
 }
-kapt{
-    correctErrorTypes = true
-}
 
 dependencies {
 
-    //Firebase BOM
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.analytics)
-
-    //FireStore
-    implementation(libs.firebase.firestore)
-
-    //Dagger-Hilt
-    implementation(libs.hilt.android)
-    implementation(libs.androidx.hilt.navigation.fragment)
-    kapt(libs.hilt.android.compiler)
-    implementation(libs.androidx.hilt.navigation.compose)
-
-    //Coil Library
-    implementation("io.coil-kt:coil-compose:2.6.0")
-
-    // Test
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.mockito.kotlin)
-    testImplementation(libs.mockito.inline)
-    testImplementation(libs.mockito.core)
-    implementation(libs.guava)
+    //Firebase
+    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+    implementation("com.google.firebase:firebase-analytics")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -90,9 +65,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.compose.material)
+    implementation(libs.firebase.auth.ktx)
     implementation(libs.androidx.runtime.livedata)
-    implementation(libs.firebase.storage.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
