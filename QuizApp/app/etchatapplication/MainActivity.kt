@@ -13,15 +13,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.etchatapplication.CONSTANTS.INFO_SAVE_SCREEN
 import com.example.etchatapplication.CONSTANTS.LOGIN_SCREEN
 import com.example.etchatapplication.CONSTANTS.MAIN_SCREEN
 import com.example.etchatapplication.CONSTANTS.SIGN_UP_SCREEN
 import com.example.etchatapplication.ui.screen.MainScreen
 import com.example.etchatapplication.ui.screen.login.LoginScreen
-import com.example.etchatapplication.ui.screen.saveInfo.UserInfoSaveScreen
 import com.example.etchatapplication.ui.screen.signup.SignUpScreen
 import com.example.etchatapplication.ui.theme.ETChatApplicationTheme
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -30,8 +29,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             var darkTheme by rememberSaveable { mutableStateOf(false) }
-            ETChatApplicationTheme {
-                NavRoute(darkTheme){
+            ETChatApplicationTheme(darkTheme) {
+                NavRoute(darkTheme) {
                     darkTheme = !darkTheme
                 }
             }
@@ -41,29 +40,30 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun NavRoute(darkTheme: Boolean, darkThemeChange: () -> Unit) {
-    val context = LocalContext.current
     val navController = rememberNavController()
-    SetNavigationRoute(navController,darkTheme,darkThemeChange)
+    val isUserLoggedIn = FirebaseAuth.getInstance().currentUser != null
+    SetNavigationRoute(navController, isUserLoggedIn, darkTheme, darkThemeChange)
 }
 
 @Composable
 fun SetNavigationRoute(
     navController: NavHostController,
+    isUserLoggedIn: Boolean,
     darkTheme: Boolean,
-    darkThemeChange: () -> Unit
+    darkThemeChange: () -> Unit,
 ) {
-    NavHost(navController = navController, startDestination = LOGIN_SCREEN) {
+    NavHost(
+        navController = navController,
+        startDestination = if (isUserLoggedIn) MAIN_SCREEN else LOGIN_SCREEN
+    ) {
         composable(SIGN_UP_SCREEN) {
             SignUpScreen(navController)
         }
         composable(LOGIN_SCREEN) {
             LoginScreen(navController)
         }
-        composable("$INFO_SAVE_SCREEN/{email}"){backStackEntry ->
-            val email = backStackEntry.arguments?.getString("email") ?: ""
-            UserInfoSaveScreen(navController, email)        }
         composable(MAIN_SCREEN) {
-            MainScreen(darkTheme,darkThemeChange)
+            MainScreen(navController, darkTheme, darkThemeChange)
         }
     }
 }
@@ -72,8 +72,8 @@ object CONSTANTS {
     const val LOGIN_SCREEN = "loginScreen"
     const val SIGN_UP_SCREEN = "signInScreen"
     const val MAIN_SCREEN = "mainScreen"
-    const val INFO_SAVE_SCREEN = "infoSaveScreen"
     const val HOME_SCREEN = "homeScreen"
     const val GROUP_SCREEN = "groupScreen"
     const val SETTINGS_SCREEN = "settingsScreen"
+    const val USERS_LIST_SCREEN = "usersListScreen"
 }

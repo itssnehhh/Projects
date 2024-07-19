@@ -15,6 +15,12 @@ class SignUpViewModel @Inject constructor(
     private val authRepository: FirebaseAuthRepository,
 ) : ViewModel() {
 
+    private val fName = MutableStateFlow("")
+    val firstName: StateFlow<String> = fName
+
+    private val lName = MutableStateFlow("")
+    val lastName: StateFlow<String> = lName
+
     private val _email = MutableStateFlow("")
     val email: StateFlow<String> = _email
 
@@ -24,6 +30,16 @@ class SignUpViewModel @Inject constructor(
     private val _cPassword = MutableStateFlow("")
     val cPassword: StateFlow<String> = _cPassword
 
+    private val _passwordVisible = MutableStateFlow(false)
+    val passwordVisible: StateFlow<Boolean> = _passwordVisible
+
+    fun onFirstNameChange(name: String) {
+        fName.value = name
+    }
+
+    fun onLastNameChange(surname: String) {
+        lName.value = surname
+    }
 
     fun onEmailChange(email: String) {
         _email.value = email
@@ -37,6 +53,10 @@ class SignUpViewModel @Inject constructor(
         _cPassword.value = confirmPassword
     }
 
+    fun onVisibilityChange(status: Boolean) {
+        _passwordVisible.value = status
+    }
+
     private fun isEmailValid(email: String): Boolean {
         return Patterns.EMAIL_ADDRESS.matcher(email).matches()
     }
@@ -46,15 +66,20 @@ class SignUpViewModel @Inject constructor(
         return password.matches(passwordRegex.toRegex())
     }
 
-    fun signUp(
+    fun createAccount(
+        firstName: String,
+        lastName: String,
         email: String,
         password: String,
         confirmPassword: String,
         context: Context,
-        onResult: (Boolean) -> Unit,
+        onResult: (Boolean) -> Unit
     ) {
-
         when {
+            firstName.isEmpty() || lastName.isEmpty() -> {
+                Toast.makeText(context, "Please fill all details", Toast.LENGTH_SHORT).show()
+            }
+
             email.isEmpty() || !isEmailValid(email) -> {
                 Toast.makeText(context, "Please enter valid email address", Toast.LENGTH_SHORT)
                     .show()
@@ -72,7 +97,7 @@ class SignUpViewModel @Inject constructor(
             }
 
             else -> {
-                authRepository.signUp(email, password) { success ->
+                authRepository.signUp(firstName,lastName,email, password) { success ->
                     onResult(success)
                 }
             }

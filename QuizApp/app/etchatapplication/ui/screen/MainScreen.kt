@@ -4,14 +4,19 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -20,28 +25,41 @@ import androidx.navigation.compose.rememberNavController
 import com.example.etchatapplication.CONSTANTS.GROUP_SCREEN
 import com.example.etchatapplication.CONSTANTS.HOME_SCREEN
 import com.example.etchatapplication.CONSTANTS.SETTINGS_SCREEN
+import com.example.etchatapplication.CONSTANTS.USERS_LIST_SCREEN
 import com.example.etchatapplication.R
 import com.example.etchatapplication.model.BottomNavItem
 import com.example.etchatapplication.ui.screen.group.GroupScreen
 import com.example.etchatapplication.ui.screen.home.HomeScreen
 import com.example.etchatapplication.ui.screen.settings.SettingsScreen
+import com.example.etchatapplication.ui.screen.users.UserListScreen
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(darkTheme: Boolean, darkThemeChange: () -> Unit) {
+fun MainScreen(navController: NavHostController,darkTheme: Boolean, darkThemeChange: () -> Unit) {
 
     val innerNavController = rememberNavController()
+    val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
     Surface {
         Scaffold(
             topBar = {
-                Text(text = "Talk Hub")
+                if (currentRoute !in listOf(USERS_LIST_SCREEN)) {
+                    TopAppBar(
+                        title = { Text(text = "Talk Hub") },
+                        colors = TopAppBarDefaults.topAppBarColors(Color(0xFF2BCA8D))
+                    )
+                }
             },
             bottomBar = {
-                BottomNavigationBar(navController = innerNavController)
+                if (currentRoute !in listOf(USERS_LIST_SCREEN)) {
+                    BottomNavigationBar(navController = innerNavController)
+                }
             }
         ) { paddingValues ->
             NavHostContainer(
-                navController = innerNavController,
+                navController = navController,
+                innerNavController = innerNavController,
                 padding = paddingValues,
                 darkTheme = darkTheme,
                 darkThemeChange = darkThemeChange
@@ -53,23 +71,27 @@ fun MainScreen(darkTheme: Boolean, darkThemeChange: () -> Unit) {
 @Composable
 fun NavHostContainer(
     navController: NavHostController,
+    innerNavController: NavHostController,
     padding: PaddingValues,
     darkTheme: Boolean,
     darkThemeChange: () -> Unit
 ) {
     NavHost(
-        navController = navController,
+        navController = innerNavController,
         startDestination = HOME_SCREEN,
         modifier = Modifier.padding(padding)
     ) {
         composable(HOME_SCREEN) {
-            HomeScreen()
+            HomeScreen(innerNavController)
         }
         composable(GROUP_SCREEN) {
             GroupScreen()
         }
         composable(SETTINGS_SCREEN) {
-            SettingsScreen(darkTheme,darkThemeChange)
+            SettingsScreen(navController,darkTheme, darkThemeChange)
+        }
+        composable(USERS_LIST_SCREEN) {
+            UserListScreen(innerNavController)
         }
     }
 }
@@ -94,10 +116,9 @@ fun BottomNavigationBar(navController: NavHostController) {
         )
     )
 
-    BottomAppBar {
+    BottomAppBar(containerColor = Color.LightGray, contentColor = Color.White, tonalElevation = 8.dp) {
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
-
         bottomNavItem.forEach { bottomNavItem ->
             NavigationBarItem(
                 selected = currentRoute == bottomNavItem.route,

@@ -2,9 +2,11 @@ package com.example.etchatapplication.ui.screen.login
 
 import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,14 +14,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,27 +41,30 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.example.etchatapplication.CONSTANTS.HOME_SCREEN
-import com.example.etchatapplication.CONSTANTS.MAIN_SCREEN
+import com.example.etchatapplication.CONSTANTS
 import com.example.etchatapplication.CONSTANTS.SIGN_UP_SCREEN
 import com.example.etchatapplication.R
 
 @Composable
 fun LoginScreen(navController: NavHostController) {
 
+    val context = LocalContext.current
     val loginViewModel = hiltViewModel<LoginViewModel>()
     val email by loginViewModel.email.collectAsState()
     val password by loginViewModel.password.collectAsState()
-    val context = LocalContext.current
+    val passwordVisible by loginViewModel.passwordVisible.collectAsState()
+    val isLoading by loginViewModel.isLoading.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -67,7 +77,7 @@ fun LoginScreen(navController: NavHostController) {
         LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center) {
             item {
                 Text(
-                    text = "Talk Hub",
+                    text = stringResource(id = R.string.talk_hub),
                     fontFamily = FontFamily.Serif,
                     style = MaterialTheme.typography.displaySmall,
                     textAlign = TextAlign.Center,
@@ -79,7 +89,7 @@ fun LoginScreen(navController: NavHostController) {
                 TextField(
                     value = email,
                     onValueChange = { loginViewModel.onEmailChange(it) },
-                    label = { Text(text = "Email Address") },
+                    label = { Text(text = stringResource(id = R.string.email_address)) },
                     maxLines = 1,
                     leadingIcon = {
                         Icon(
@@ -103,7 +113,7 @@ fun LoginScreen(navController: NavHostController) {
                 TextField(
                     value = password,
                     onValueChange = { loginViewModel.onPasswordChange(it) },
-                    label = { Text(text = "Password") },
+                    label = { Text(text = stringResource(id = R.string.password)) },
                     maxLines = 1,
                     leadingIcon = {
                         Icon(
@@ -111,6 +121,13 @@ fun LoginScreen(navController: NavHostController) {
                             contentDescription = ""
                         )
                     },
+                    trailingIcon = {
+                        val image = if (passwordVisible) R.drawable.hidden else R.drawable.show
+                        IconButton(onClick = { loginViewModel.onVisibilityChange(!passwordVisible) }) {
+                            Image(painter = painterResource(id = image), "")
+                        }
+                    },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password).copy(
                         imeAction = ImeAction.Next
                     ),
@@ -126,7 +143,7 @@ fun LoginScreen(navController: NavHostController) {
                 )
                 TextButton(onClick = { /*TODO*/ }, modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "Forgot Password ?",
+                        text = stringResource(R.string.forgot_password),
                         textAlign = TextAlign.End,
                         color = Color(0xFF2BCA8D),
                         modifier = Modifier
@@ -137,11 +154,16 @@ fun LoginScreen(navController: NavHostController) {
                 Button(
                     colors = ButtonDefaults.buttonColors(Color(0xFF2BCA8D)),
                     onClick = {
-                        loginViewModel.signIn(email,password,context){success ->
-                            if (success){
-                                navController.navigate(MAIN_SCREEN)
-                            }else{
-                                Toast.makeText(context, "Incorrect email or password", Toast.LENGTH_SHORT).show()
+                        loginViewModel.checkCurrentUser(email, password, context) { isExist ->
+                            if (isExist) {
+                                navController.navigate(CONSTANTS.MAIN_SCREEN) {
+                                    popUpTo(CONSTANTS.LOGIN_SCREEN) { inclusive = true }
+                                }
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.toast_login_fail), Toast.LENGTH_SHORT
+                                ).show()
                             }
                         }
                     },
@@ -149,7 +171,7 @@ fun LoginScreen(navController: NavHostController) {
                         .fillMaxWidth()
                         .padding(16.dp)
                 ) {
-                    Text(text = "Login")
+                    Text(text = stringResource(id = R.string.btn_login))
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -179,7 +201,7 @@ fun LoginScreen(navController: NavHostController) {
                         contentDescription = "",
                     )
                     Text(
-                        text = "Continue with google",
+                        text = stringResource(R.string.btn_google),
                         color = Color.Black,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.weight(1f)
@@ -198,7 +220,7 @@ fun LoginScreen(navController: NavHostController) {
                         contentDescription = ""
                     )
                     Text(
-                        text = "Continue with facebook",
+                        text = stringResource(R.string.btn_facebook),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.weight(1f)
                     )
@@ -217,13 +239,13 @@ fun LoginScreen(navController: NavHostController) {
                         .padding(16.dp)
                 ) {
                     Text(
-                        text = "Don't have an account ?",
+                        text = stringResource(R.string.don_t_have_an_account),
                         fontWeight = FontWeight.W400,
                         style = MaterialTheme.typography.bodyLarge
                     )
                     TextButton(onClick = { navController.navigate(SIGN_UP_SCREEN) }) {
                         Text(
-                            text = "Sign Up",
+                            text = stringResource(id = R.string.btn_signup),
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF2BCA8D),
                             style = MaterialTheme.typography.titleMedium
@@ -232,11 +254,38 @@ fun LoginScreen(navController: NavHostController) {
                 }
             }
         }
+        // Display the loading dialog
+        LoadingDialog(isLoading = isLoading, onDismiss = { /* Handle dismiss if needed */ })
     }
 }
 
-@Preview
 @Composable
-fun LoginScreenPreview() {
-    LoginScreen(NavHostController(LocalContext.current))
+fun LoadingDialog(isLoading: Boolean, onDismiss: () -> Unit) {
+    if (isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.4f), shape = RoundedCornerShape(8.dp))
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(0.8f),
+                colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(text = "Logging in...", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+    }
 }
