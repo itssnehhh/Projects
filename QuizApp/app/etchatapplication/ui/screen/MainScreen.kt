@@ -22,12 +22,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.etchatapplication.CONSTANTS.CHAT_SCREEN
 import com.example.etchatapplication.CONSTANTS.GROUP_SCREEN
 import com.example.etchatapplication.CONSTANTS.HOME_SCREEN
 import com.example.etchatapplication.CONSTANTS.SETTINGS_SCREEN
 import com.example.etchatapplication.CONSTANTS.USERS_LIST_SCREEN
 import com.example.etchatapplication.R
 import com.example.etchatapplication.model.BottomNavItem
+import com.example.etchatapplication.ui.screen.chat.ChatScreen
 import com.example.etchatapplication.ui.screen.group.GroupScreen
 import com.example.etchatapplication.ui.screen.home.HomeScreen
 import com.example.etchatapplication.ui.screen.settings.SettingsScreen
@@ -35,7 +37,7 @@ import com.example.etchatapplication.ui.screen.users.UserListScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(navController: NavHostController,darkTheme: Boolean, darkThemeChange: () -> Unit) {
+fun MainScreen(navController: NavHostController, darkTheme: Boolean, darkThemeChange: () -> Unit) {
 
     val innerNavController = rememberNavController()
     val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
@@ -44,7 +46,7 @@ fun MainScreen(navController: NavHostController,darkTheme: Boolean, darkThemeCha
     Surface {
         Scaffold(
             topBar = {
-                if (currentRoute !in listOf(USERS_LIST_SCREEN)) {
+                if (currentRoute !in listOf(USERS_LIST_SCREEN,"$CHAT_SCREEN/{userId}")) {
                     TopAppBar(
                         title = { Text(text = "Talk Hub") },
                         colors = TopAppBarDefaults.topAppBarColors(Color(0xFF2BCA8D))
@@ -52,7 +54,7 @@ fun MainScreen(navController: NavHostController,darkTheme: Boolean, darkThemeCha
                 }
             },
             bottomBar = {
-                if (currentRoute !in listOf(USERS_LIST_SCREEN)) {
+                if (currentRoute !in listOf(USERS_LIST_SCREEN, "$CHAT_SCREEN/{userId}")) {
                     BottomNavigationBar(navController = innerNavController)
                 }
             }
@@ -74,7 +76,7 @@ fun NavHostContainer(
     innerNavController: NavHostController,
     padding: PaddingValues,
     darkTheme: Boolean,
-    darkThemeChange: () -> Unit
+    darkThemeChange: () -> Unit,
 ) {
     NavHost(
         navController = innerNavController,
@@ -88,10 +90,18 @@ fun NavHostContainer(
             GroupScreen()
         }
         composable(SETTINGS_SCREEN) {
-            SettingsScreen(navController,darkTheme, darkThemeChange)
+            SettingsScreen(navController, darkTheme, darkThemeChange)
         }
-        composable(USERS_LIST_SCREEN) {
+        composable(
+            route = USERS_LIST_SCREEN,
+        ) {
             UserListScreen(innerNavController)
+        }
+        composable(
+            route = "$CHAT_SCREEN/{userId}",
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")
+            userId?.let { ChatScreen(it, innerNavController) }
         }
     }
 }
@@ -116,7 +126,11 @@ fun BottomNavigationBar(navController: NavHostController) {
         )
     )
 
-    BottomAppBar(containerColor = Color.LightGray, contentColor = Color.White, tonalElevation = 8.dp) {
+    BottomAppBar(
+        containerColor = Color.LightGray,
+        contentColor = Color.White,
+        tonalElevation = 8.dp
+    ) {
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
         bottomNavItem.forEach { bottomNavItem ->
@@ -135,3 +149,4 @@ fun BottomNavigationBar(navController: NavHostController) {
         }
     }
 }
+

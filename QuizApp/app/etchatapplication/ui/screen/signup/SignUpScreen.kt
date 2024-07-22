@@ -46,6 +46,7 @@ import androidx.navigation.NavHostController
 import com.example.etchatapplication.CONSTANTS.LOGIN_SCREEN
 import com.example.etchatapplication.CONSTANTS.MAIN_SCREEN
 import com.example.etchatapplication.R
+import com.example.etchatapplication.ui.screen.login.LoadingDialog
 
 @Composable
 fun SignUpScreen(navController: NavHostController) {
@@ -58,6 +59,7 @@ fun SignUpScreen(navController: NavHostController) {
     val password by signUpViewModel.password.collectAsState()
     val confirmPassword by signUpViewModel.cPassword.collectAsState()
     val passwordVisible by signUpViewModel.passwordVisible.collectAsState()
+    val isLoading by signUpViewModel.isLoading.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -87,103 +89,47 @@ fun SignUpScreen(navController: NavHostController) {
                         .fillMaxWidth()
                         .size(160.dp)
                 )
-                TextField(
+                InputTextField(
                     value = firstName,
                     onValueChange = { signUpViewModel.onFirstNameChange(it) },
-                    label = { Text(text = "First Name") },
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        imeAction = ImeAction.Next
-                    ),
-                    maxLines = 1,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFE2F8F0),
-                        unfocusedContainerColor = Color(0xFFE2F8F0),
-                        unfocusedIndicatorColor = Color(0xFF008652),
-                        focusedIndicatorColor = Color(0xFF008652),
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                    label = { Text(text = stringResource(R.string.first_name)) },
                 )
-                TextField(
+                InputTextField(
                     value = lastName,
                     onValueChange = { signUpViewModel.onLastNameChange(it) },
-                    label = { Text(text = "Last Name") },
-                    maxLines = 1,
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        imeAction = ImeAction.Next
-                    ),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFE2F8F0),
-                        unfocusedContainerColor = Color(0xFFE2F8F0),
-                        unfocusedIndicatorColor = Color(0xFF008652),
-                        focusedIndicatorColor = Color(0xFF008652),
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                    label = { Text(text = stringResource(R.string.last_name)) },
                 )
-
-                TextField(
+                InputTextField(
                     value = email,
                     onValueChange = { signUpViewModel.onEmailChange(it) },
                     label = { Text(text = stringResource(R.string.email_address)) },
-                    maxLines = 1,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                        .copy(imeAction = ImeAction.Next),
                     leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Email,
-                            contentDescription = ""
-                        )
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email).copy(
-                        imeAction = ImeAction.Next
-                    ),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFE2F8F0),
-                        unfocusedContainerColor = Color(0xFFE2F8F0),
-                        unfocusedIndicatorColor = Color(0xFF008652),
-                        focusedIndicatorColor = Color(0xFF008652),
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        Icon(imageVector = Icons.Default.Email, contentDescription = "")
+                    }
                 )
-                TextField(
+                InputTextField(
                     value = password,
                     onValueChange = { signUpViewModel.onPasswordChange(it) },
-                    maxLines = 1,
                     label = { Text(text = stringResource(R.string.password)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                        .copy(imeAction = ImeAction.Next),
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Default.Lock, contentDescription = "")
+                    },
                     trailingIcon = {
                         val image = if (passwordVisible) R.drawable.hidden else R.drawable.show
                         IconButton(onClick = { signUpViewModel.onVisibilityChange(!passwordVisible) }) {
                             Image(painter = painterResource(id = image), "")
                         }
                     },
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = ""
-                        )
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password).copy(
-                        imeAction = ImeAction.Next
-                    ),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFE2F8F0),
-                        unfocusedContainerColor = Color(0xFFE2F8F0),
-                        unfocusedIndicatorColor = Color(0xFF008652),
-                        focusedIndicatorColor = Color(0xFF008652),
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation()
                 )
-                TextField(
+                InputTextField(
                     value = confirmPassword,
                     onValueChange = { signUpViewModel.onConfirmPasswordChange(it) },
                     label = { Text(text = stringResource(R.string.confirm_password)) },
-                    maxLines = 1,
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Lock,
@@ -201,15 +147,6 @@ fun SignUpScreen(navController: NavHostController) {
                         imeAction = ImeAction.Next
                     ),
                     supportingText = { Text(text = "Password must be at least 8 characters long and must contains one capital text,one number,one special character") },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFE2F8F0),
-                        unfocusedContainerColor = Color(0xFFE2F8F0),
-                        unfocusedIndicatorColor = Color(0xFF008652),
-                        focusedIndicatorColor = Color(0xFF008652),
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 )
                 Button(
                     colors = ButtonDefaults.buttonColors(Color(0xFF2BCA8D)),
@@ -226,8 +163,12 @@ fun SignUpScreen(navController: NavHostController) {
                                 navController.navigate(MAIN_SCREEN) {
                                     popUpTo(LOGIN_SCREEN) { inclusive = true }
                                 }
-                            }else{
-                                Toast.makeText(context, "The email address is already in use by another account.", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "The email address is already in use by another account.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                         }
                     },
@@ -263,5 +204,41 @@ fun SignUpScreen(navController: NavHostController) {
                 }
             }
         }
+        LoadingDialog(isLoading = isLoading)
     }
+}
+
+@Composable
+fun InputTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: @Composable (() -> Unit)? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    leadingIcon: @Composable (() -> Unit)? = null,
+    trailingIcon: @Composable (() -> Unit)? = null,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    supportingText: @Composable (() -> Unit)? = null
+) {
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = label,
+        keyboardOptions = keyboardOptions.copy(
+            imeAction = ImeAction.Next
+        ),
+        maxLines = 1,
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = Color(0xFFE2F8F0),
+            unfocusedContainerColor = Color(0xFFE2F8F0),
+            unfocusedIndicatorColor = Color(0xFF008652),
+            focusedIndicatorColor = Color(0xFF008652),
+        ),
+        leadingIcon = leadingIcon,
+        trailingIcon = trailingIcon,
+        visualTransformation = visualTransformation,
+        supportingText = supportingText,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    )
 }

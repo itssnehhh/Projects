@@ -8,7 +8,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -63,7 +62,7 @@ fun SetNavigationRoute(
             LoginScreen(navController)
         }
         composable(MAIN_SCREEN) {
-            MainScreen(navController, darkTheme, darkThemeChange)
+            MainScreen(navController,darkTheme, darkThemeChange)
         }
     }
 }
@@ -76,4 +75,5 @@ object CONSTANTS {
     const val GROUP_SCREEN = "groupScreen"
     const val SETTINGS_SCREEN = "settingsScreen"
     const val USERS_LIST_SCREEN = "usersListScreen"
+    const val CHAT_SCREEN = "chatScreen"
 }

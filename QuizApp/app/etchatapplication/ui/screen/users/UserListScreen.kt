@@ -1,10 +1,11 @@
 package com.example.etchatapplication.ui.screen.users
 
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -38,6 +40,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import com.example.etchatapplication.CONSTANTS.CHAT_SCREEN
 import com.example.etchatapplication.R
 import com.example.etchatapplication.model.User
 
@@ -47,7 +50,8 @@ fun UserListScreen(navController: NavHostController) {
 
     val userListViewModel = hiltViewModel<UserListViewModel>()
     val userList by userListViewModel.userList.collectAsState()
-    Log.d("USER_LIST", "UserListScreen: $userList")
+    val isLoading by userListViewModel.isLoading.collectAsState()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -97,26 +101,40 @@ fun UserListScreen(navController: NavHostController) {
             )
         }
     ) { paddingValues ->
-        LazyColumn(modifier = Modifier.padding(paddingValues)) {
-            item {
-                GroupCard()
+
+        if (isLoading) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                CircularProgressIndicator(color = Color(0xFF2BCA8D))
             }
-            items(userList) { user ->
-                UserCard(user)
+        } else {
+            LazyColumn(modifier = Modifier.padding(paddingValues)) {
+                item {
+                    GroupCard()
+                }
+                items(userList) { user ->
+                    UserCard(user,navController)
+                }
             }
         }
     }
 }
 
 @Composable
-fun UserCard(user: User) {
+fun UserCard(user: User, navController: NavHostController) {
     Card(
         colors = CardDefaults.cardColors(Color.White),
+        shape = TextFieldDefaults.shape,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp)
             .clickable {
-
+                navController.navigate("$CHAT_SCREEN/${user.email}")
             }
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
@@ -129,10 +147,15 @@ fun UserCard(user: User) {
             )
             Column(modifier = Modifier.padding(8.dp)) {
                 Text(
-                    text = "${user.fname} ${user.lname}",
-                    style = MaterialTheme.typography.bodyMedium
+                    text = "${user.firstname} ${user.lastname}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.Black
                 )
-                Text(text = user.email, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = user.email,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Black
+                )
             }
         }
     }

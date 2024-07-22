@@ -4,10 +4,15 @@ import android.content.Context
 import android.util.Patterns
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.etchatapplication.repository.auth.FirebaseAuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -24,7 +29,6 @@ class LoginViewModel @Inject constructor(
     private val _passwordVisible = MutableStateFlow(false)
     val passwordVisible: StateFlow<Boolean> = _passwordVisible
 
-    // New loading state flow
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
@@ -62,10 +66,15 @@ class LoginViewModel @Inject constructor(
             }
 
             else -> {
-                _isLoading.value = true  // Set loading to true
-                authRepository.logIn(email, password) { success ->
-                    _isLoading.value = false  // Set loading to false
-                    onResult(success)
+                viewModelScope.launch {
+                    withContext(Dispatchers.IO){
+                        _isLoading.value = true
+                        delay(timeMillis = 1000L)
+                        authRepository.logIn(email, password) { success ->
+                            _isLoading.value = false
+                            onResult(success)
+                        }
+                    }
                 }
             }
         }

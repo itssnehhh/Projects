@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
@@ -52,7 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.example.etchatapplication.CONSTANTS
+import com.example.etchatapplication.CONSTANTS.MAIN_SCREEN
 import com.example.etchatapplication.CONSTANTS.SIGN_UP_SCREEN
 import com.example.etchatapplication.R
 
@@ -156,9 +155,7 @@ fun LoginScreen(navController: NavHostController) {
                     onClick = {
                         loginViewModel.checkCurrentUser(email, password, context) { isExist ->
                             if (isExist) {
-                                navController.navigate(CONSTANTS.MAIN_SCREEN) {
-                                    popUpTo(CONSTANTS.LOGIN_SCREEN) { inclusive = true }
-                                }
+                                navController.navigate(MAIN_SCREEN)
                             } else {
                                 Toast.makeText(
                                     context,
@@ -254,36 +251,39 @@ fun LoginScreen(navController: NavHostController) {
                 }
             }
         }
-        // Display the loading dialog
-        LoadingDialog(isLoading = isLoading, onDismiss = { /* Handle dismiss if needed */ })
+        LoadingDialog(isLoading)
     }
 }
 
 @Composable
-fun LoadingDialog(isLoading: Boolean, onDismiss: () -> Unit) {
+fun LoadingDialog(isLoading: Boolean) {
     if (isLoading) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.4f), shape = RoundedCornerShape(8.dp))
-                .padding(16.dp),
+                .background(Color.Black.copy(alpha = 0.4f)),
             contentAlignment = Alignment.Center
         ) {
             Card(
-                modifier = Modifier.fillMaxWidth(0.8f),
-                colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
+                colors = CardDefaults.cardColors(Color.Black.copy(alpha = 0.6f)),
+                modifier = Modifier
+                    .align(Alignment.Center),
                 elevation = CardDefaults.cardElevation(8.dp)
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
+                        .background(Color.Black.copy(alpha = 0.6f))
+                        .padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    CircularProgressIndicator()
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = "Logging in...", style = MaterialTheme.typography.bodyMedium)
+                    CircularProgressIndicator(color = Color(0xFF2BCA8D))
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text(
+                        text = "Logging in...",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
             }
         }

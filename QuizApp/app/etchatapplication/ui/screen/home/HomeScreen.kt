@@ -15,6 +15,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,9 +52,9 @@ fun HomeScreen(navController: NavHostController) {
 fun UserChatList() {
     Card(
         colors = CardDefaults.cardColors(Color.White),
+        shape = TextFieldDefaults.shape,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp)
             .clickable {
 
             }
@@ -65,20 +66,26 @@ fun UserChatList() {
                 modifier = Modifier
                     .size(60.dp)
                     .padding(4.dp)
+                    .align(Alignment.CenterVertically)
             )
-            Column(modifier = Modifier
-                .padding(8.dp)
-                .weight(1f)) {
+            Column(modifier = Modifier.weight(1f).padding(4.dp)) {
                 Text(
                     text = "Username",
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.Black,
+                    modifier = Modifier.padding(vertical = 4.dp)
                 )
-                Text(text = "lastMessage", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = "lastMessage",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.DarkGray
+                )
             }
             Text(
                 text = "00:00",
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.align(Alignment.Bottom)
+                color = Color.Gray,
+                modifier = Modifier.align(Alignment.Bottom).padding(horizontal = 4.dp)
             )
         }
     }

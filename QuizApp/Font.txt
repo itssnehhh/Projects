@@ -1,0 +1,475 @@
+data class ChatMessage(
+    val id: String = "",
+    val senderId: String = "",
+    val receiverId: String = "",
+    val message: String = "",
+    val timestamp: Long = 0L,
+    val isSent: Boolean = false,
+)
+
+
+@Singleton
+class FirestoreRepository @Inject constructor(
+    private val firestore: FirebaseFirestore,
+) 
+{
+
+    private val userCollection = firestore.collection("users")
+    private val chatsCollection = firestore.collection("chats")
+
+    fun getUsersList(onResult: (List<User>) -> Unit) {
+        firestore.collection("users")
+            .get()
+            .addOnSuccessListener { result ->
+                val users = result.map { it.toObject(User::class.java) }
+                onResult(users)
+            }
+            .addOnFailureListener { exception ->
+                exception.printStackTrace()
+                onResult(emptyList())
+            }
+    }
+
+    fun addUser(uid: String, user: User, onResult: (Boolean) -> Unit) {
+        userCollection
+            .document(uid)
+            .set(user)
+            .addOnCompleteListener { task ->
+                onResult(task.isSuccessful)
+            }
+    }
+
+    fun getMessages(senderEmail: String, receiverEmail: String): Flow<List<ChatMessage>> =
+        callbackFlow {
+            val docRef = chatsCollection
+                .document(senderEmail)
+                .collection(receiverEmail)
+                .orderBy("timestamp")
+
+            val subscription = docRef.addSnapshotListener { snapshot, _ ->
+                if (snapshot != null) {
+                    val messages = snapshot.toObjects(ChatMessage::class.java)
+                    trySend(messages).isSuccess
+                }
+            }
+
+            awaitClose { subscription.remove() }
+        }
+
+    fun sendMessage(receiverEmail: String, message: String, onResult: (Boolean) -> Unit) {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        val senderEmail = currentUser?.email ?: return
+
+        val messageId = UUID.randomUUID().toString()
+        val chatMessage = ChatMessage(
+            id = messageId,
+            senderId = senderEmail,
+            receiverId = receiverEmail,
+            message = message,
+            isSent = true,
+            timestamp = System.currentTimeMillis()
+        )
+
+        val senderDocRef = chatsCollection
+            .document(senderEmail)
+            .collection(receiverEmail)
+            .document(messageId)
+
+        val receiverDocRef = chatsCollection
+            .document(receiverEmail)
+            .collection(senderEmail)
+            .document(messageId)
+
+        firestore.runBatch { batch ->
+            batch.set(senderDocRef, chatMessage)
+            batch.set(receiverDocRef, chatMessage)
+        }.addOnCompleteListener { task ->
+            onResult(task.isSuccessful)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChatScreen(
+    userId: String,
+    navController: NavHostController,
+    viewModel: ChatViewModel = hiltViewModel()
+) {
+    val messages by viewModel.messages.collectAsState()
+    val messageText by viewModel.messageText.collectAsState()
+    viewModel.initView(userId)
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                navigationIcon = {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .clickable { navController.popBackStack() }
+                    )
+                },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(id = R.drawable.account),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .padding(end = 8.dp)
+                        )
+                        Text(
+                            text = userId, // Replace with actual user name
+                            style = MaterialTheme.typography.titleLarge,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(Color(0xFF2BCA8D))
+            )
+        },
+        bottomBar = {
+            ChatInputBar(
+                messageText = messageText,
+                onMessageChange = { viewModel.onMessageChange(it) },
+                onSend = { viewModel.sendMessage() },
+                onMediaSelect = {
+                    // Handle media selection
+                }
+            )
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize(),
+            contentPadding = PaddingValues(8.dp),
+            reverseLayout = true
+        ) {
+            items(messages) { message ->
+                ChatMessageCard(message)
+            }
+        }
+    }
+}
+
+@Composable
+fun ChatMessageCard(message: ChatMessage) {
+    val isCurrentUser = message.senderId == FirebaseAuth.getInstance().currentUser?.email
+    val backgroundColor = if (isCurrentUser) Color(0xFF2BCA8D) else Color.Gray
+
+    Row(
+        horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        if (!isCurrentUser) {
+            Spacer(modifier = Modifier.weight(1f))
+        }
+
+        Card(
+            colors = CardDefaults.cardColors(backgroundColor),
+            modifier = Modifier
+                .padding(horizontal = 8.dp)
+                .clip(MaterialTheme.shapes.medium)
+        ) {
+            Text(
+                text = message.message,
+                color = Color.White,
+                modifier = Modifier.padding(8.dp)
+            )
+        }
+
+        if (isCurrentUser) {
+            Spacer(modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+fun ChatInputBar(
+    messageText: String,
+    onMessageChange: (String) -> Unit,
+    onSend: () -> Unit,
+    onMediaSelect: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    ) {
+        TextField(
+            value = messageText,
+            onValueChange = onMessageChange,
+            modifier = Modifier.weight(1f),
+            placeholder = { Text("Type a message...") }
+        )
+        IconButton(onClick = onMediaSelect) {
+            Icon(
+                painter = painterResource(id = R.drawable.chat), // Replace with actual media icon
+                contentDescription = "Attach media"
+            )
+        }
+        IconButton(onClick = onSend) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Send,
+                contentDescription = "Send message"
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+fun ChatScreenPreview() {
+    ChatScreen(userId = "", navController = NavHostController(LocalContext.current))
+}
+
+
+@HiltViewModel
+class ChatViewModel @Inject constructor(
+    private val repository: FirestoreRepository
+) : ViewModel() {
+    private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
+    val messages: StateFlow<List<ChatMessage>> = _messages
+
+    private val _messageText = MutableStateFlow("")
+    val messageText: StateFlow<String> = _messageText
+
+    private lateinit var receiverEmail: String
+
+    fun initView(receiverEmail: String) {
+        this.receiverEmail = receiverEmail
+        loadMessages()
+    }
+
+    fun onMessageChange(newText: String) {
+        _messageText.value = newText
+    }
+
+    fun sendMessage() {
+        val message = _messageText.value
+        if (message.isNotBlank()) {
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            val senderEmail = currentUser?.email ?: return
+
+            viewModelScope.launch {
+                repository.sendMessage(receiverEmail, message) { success ->
+                    if (success) {
+                        _messageText.value = ""
+                        loadMessages()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun loadMessages() {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        val senderEmail = currentUser?.email ?: return
+
+        viewModelScope.launch {
+            repository.getMessages(senderEmail, receiverEmail).collect { messages ->
+                _messages.value = messages
+            }
+        }
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UserListScreen(navController: NavHostController) {
+
+    val userListViewModel = hiltViewModel<UserListViewModel>()
+    val userList by userListViewModel.userList.collectAsState()
+    val isLoading by userListViewModel.isLoading.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                navigationIcon = {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .clickable {
+                                navController.popBackStack()
+                            },
+                    )
+                },
+                title = {
+                    Column(modifier = Modifier.padding(horizontal = 12.dp)) {
+                        Text(
+                            text = "Contacts",
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(bottom = 4.dp),
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${userList.size} contacts",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = Color.White
+                        )
+                    }
+                },
+                actions = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "",
+                        tint = Color.White,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "",
+                        tint = Color.White,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(Color(0xFF2BCA8D))
+            )
+        }
+    ) { paddingValues ->
+
+        if (isLoading) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                CircularProgressIndicator(color = Color(0xFF2BCA8D))
+            }
+        } else {
+            LazyColumn(modifier = Modifier.padding(paddingValues)) {
+                item {
+                    GroupCard()
+                }
+                items(userList) { user ->
+                    UserCard(user,navController)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UserCard(user: User, navController: NavHostController) {
+    Card(
+        colors = CardDefaults.cardColors(Color.White),
+        shape = TextFieldDefaults.shape,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp)
+            .clickable {
+                navController.navigate("$CHAT_SCREEN/${user.email}")
+            }
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
+            Image(
+                painter = painterResource(id = R.drawable.account),
+                contentDescription = "",
+                modifier = Modifier
+                    .size(60.dp)
+                    .padding(4.dp)
+            )
+            Column(modifier = Modifier.padding(8.dp)) {
+                Text(
+                    text = "${user.firstname} ${user.lastname}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.Black
+                )
+                Text(
+                    text = user.email,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Black
+                )
+            }
+        }
+    }
+    HorizontalDivider()
+}
+
+@Composable
+fun GroupCard() {
+    Card(
+        colors = CardDefaults.cardColors(Color.White),
+        shape = TextFieldDefaults.shape,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 4.dp, end = 4.dp, top = 4.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Image(
+                painter = painterResource(id = R.drawable.group),
+                contentDescription = "",
+                modifier = Modifier
+                    .padding(12.dp)
+                    .size(40.dp)
+            )
+            Text(
+                text = "New Group",
+                color = Color.Black,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(16.dp)
+            )
+        }
+        HorizontalDivider()
+    }
+}
+
+@Preview
+@Composable
+fun UserListScreenPreview() {
+    UserListScreen(NavHostController(LocalContext.current))
+}
+
+
+@HiltViewModel
+class UserListViewModel @Inject constructor(
+    private val firestoreRepository: FirestoreRepository
+) : ViewModel() {
+
+    private val _userList = MutableStateFlow<List<User>>(emptyList())
+    val userList: StateFlow<List<User>> = _userList
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading : StateFlow<Boolean> = _isLoading
+
+    init {
+        getUserList()
+    }
+
+    private fun getUserList() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            withContext(Dispatchers.IO) {
+                delay(1000)
+                try {
+                    firestoreRepository.getUsersList { users ->
+                        _userList.value = users
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                finally {
+                    _isLoading.value = false
+                }
+            }
+        }
+    }
+}

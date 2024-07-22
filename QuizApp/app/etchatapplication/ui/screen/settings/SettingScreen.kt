@@ -14,13 +14,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
@@ -35,19 +38,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.example.etchatapplication.CONSTANTS.SIGN_UP_SCREEN
+import com.example.etchatapplication.CONSTANTS.LOGIN_SCREEN
 import com.example.etchatapplication.R
 
 @Composable
 fun SettingsScreen(
     navController: NavHostController,
     darkTheme: Boolean,
-    darkThemeChange: () -> Unit,
+    darkThemeChange: () -> Unit
 ) {
 
     val settingsViewModel = hiltViewModel<SettingsViewModel>()
     var notification by rememberSaveable { mutableStateOf(true) }
     val currentUser by settingsViewModel.currentUser.observeAsState()
+    val showDialog by settingsViewModel.showDialog.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -85,13 +89,48 @@ fun SettingsScreen(
                 image = R.drawable.logout,
                 title = "Logout",
                 modifier = Modifier.clickable {
-                    settingsViewModel.logOut()
-                    navController.navigate(SIGN_UP_SCREEN) {
-                        popUpTo(0) { inclusive = true }
-                    }
+                    settingsViewModel.onDialogStatusChange(true)
+
                 }
             )
         }
+    }
+    if (showDialog) {
+        AlertDialog(
+            containerColor = Color(0xFF2BCA8D),
+            onDismissRequest = { settingsViewModel.onDialogStatusChange(true) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        settingsViewModel.logOut()
+                        navController.navigate(LOGIN_SCREEN) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                ) {
+                    Text(text = "Logout", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { settingsViewModel.onDialogStatusChange(false) }) {
+                    Text(text = "Cancel", color = Color.White,style = MaterialTheme.typography.titleMedium)
+                }
+            },
+            title = {
+                Text(
+                    text = "Logout",
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = "Are your sure you want to logout your account ?",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        )
     }
 }
 
@@ -155,7 +194,6 @@ fun ProfileCard(userName: String, userEmail: String) {
                     .size(120.dp)
                     .padding(8.dp)
                     .border(1.dp, Color.DarkGray, CircleShape)
-
             )
             Column(
                 modifier = Modifier
@@ -179,6 +217,7 @@ fun ProfileCard(userName: String, userEmail: String) {
         }
     }
 }
+
 
 @Preview
 @Composable

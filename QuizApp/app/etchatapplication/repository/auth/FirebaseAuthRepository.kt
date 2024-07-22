@@ -37,8 +37,8 @@ class FirebaseAuthRepository @Inject constructor(
                         if (profileUpdate.isSuccessful) {
                             val userDetails = User(
                                 id = it.uid,
-                                fname = fName,
-                                lname = lName,
+                                firstname = fName,
+                                lastname = lName,
                                 email = email
                             )
                             firestoreRepository.addUser(it.uid, userDetails) { firestoreUpdate ->

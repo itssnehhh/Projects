@@ -4,10 +4,15 @@ import android.content.Context
 import android.util.Patterns
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.etchatapplication.repository.auth.FirebaseAuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -32,6 +37,9 @@ class SignUpViewModel @Inject constructor(
 
     private val _passwordVisible = MutableStateFlow(false)
     val passwordVisible: StateFlow<Boolean> = _passwordVisible
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
 
     fun onFirstNameChange(name: String) {
         fName.value = name
@@ -97,8 +105,15 @@ class SignUpViewModel @Inject constructor(
             }
 
             else -> {
-                authRepository.signUp(firstName,lastName,email, password) { success ->
-                    onResult(success)
+                viewModelScope.launch {
+                    withContext(Dispatchers.IO) {
+                        _isLoading.value = true
+                        delay(1000L)
+                        authRepository.signUp(firstName, lastName, email, password) { success ->
+                            _isLoading.value = false
+                            onResult(success)
+                        }
+                    }
                 }
             }
         }
