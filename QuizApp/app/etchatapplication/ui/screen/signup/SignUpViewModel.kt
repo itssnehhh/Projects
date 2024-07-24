@@ -5,6 +5,7 @@ import android.util.Patterns
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.etchatapplication.R
 import com.example.etchatapplication.repository.auth.FirebaseAuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -85,22 +86,35 @@ class SignUpViewModel @Inject constructor(
     ) {
         when {
             firstName.isEmpty() || lastName.isEmpty() -> {
-                Toast.makeText(context, "Please fill all details", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.toast_empty_fields), Toast.LENGTH_SHORT
+                ).show()
             }
 
             email.isEmpty() || !isEmailValid(email) -> {
-                Toast.makeText(context, "Please enter valid email address", Toast.LENGTH_SHORT)
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.toast_email_error),
+                    Toast.LENGTH_SHORT
+                )
                     .show()
                 onResult(false)
             }
 
             password.isEmpty() || !isPasswordValid(password) -> {
-                Toast.makeText(context, "Please enter valid password", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.toast_valid_password), Toast.LENGTH_SHORT
+                ).show()
                 onResult(false)
             }
 
             confirmPassword.isEmpty() || confirmPassword != password -> {
-                Toast.makeText(context, "Password mismatched", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.toast_password_mismatch), Toast.LENGTH_SHORT
+                ).show()
                 onResult(false)
             }
 

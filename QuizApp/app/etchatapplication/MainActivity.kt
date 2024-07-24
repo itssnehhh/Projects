@@ -62,7 +62,7 @@ fun SetNavigationRoute(
             LoginScreen(navController)
         }
         composable(MAIN_SCREEN) {
-            MainScreen(navController,darkTheme, darkThemeChange)
+            MainScreen(navController, darkTheme, darkThemeChange)
         }
     }
 }
@@ -76,4 +76,7 @@ object CONSTANTS {
     const val SETTINGS_SCREEN = "settingsScreen"
     const val USERS_LIST_SCREEN = "usersListScreen"
     const val CHAT_SCREEN = "chatScreen"
+    const val GROUP_ADD_SCREEN = "groupAddScreen"
+    const val GROUP_DETAIL_SCREEN = "groupDetailScreen"
+    const val GROUP_CHAT_SCREEN = "groupChatScreen"
 }

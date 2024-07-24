@@ -35,14 +35,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.etchatapplication.CONSTANTS.CHAT_SCREEN
+import com.example.etchatapplication.CONSTANTS.GROUP_ADD_SCREEN
 import com.example.etchatapplication.R
 import com.example.etchatapplication.model.User
+import com.example.etchatapplication.ui.screen.login.LoadingDialog
+import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,22 +66,20 @@ fun UserListScreen(navController: NavHostController) {
                         tint = Color.White,
                         modifier = Modifier
                             .padding(8.dp)
-                            .clickable {
-                                navController.popBackStack()
-                            },
+                            .clickable { navController.popBackStack() }
                     )
                 },
                 title = {
                     Column(modifier = Modifier.padding(horizontal = 12.dp)) {
                         Text(
-                            text = "Contacts",
+                            text = stringResource(R.string.contacts),
                             style = MaterialTheme.typography.titleLarge,
                             modifier = Modifier.padding(bottom = 4.dp),
                             color = Color.White,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${userList.size} contacts",
+                            text = "${userList.size - 1} contacts",
                             style = MaterialTheme.typography.titleSmall,
                             color = Color.White
                         )
@@ -115,13 +117,19 @@ fun UserListScreen(navController: NavHostController) {
         } else {
             LazyColumn(modifier = Modifier.padding(paddingValues)) {
                 item {
-                    GroupCard()
+                    GroupCard(navController)
                 }
                 items(userList) { user ->
-                    UserCard(user,navController)
+                    val currentUser = FirebaseAuth.getInstance().currentUser
+                    if (currentUser != null) {
+                        if (user.email != currentUser.email) {
+                            UserCard(user = user, navController = navController)
+                        }
+                    }
                 }
             }
         }
+        LoadingDialog(isLoading = isLoading)
     }
 }
 
@@ -163,13 +171,16 @@ fun UserCard(user: User, navController: NavHostController) {
 }
 
 @Composable
-fun GroupCard() {
+fun GroupCard(navController: NavHostController) {
     Card(
         colors = CardDefaults.cardColors(Color.White),
         shape = TextFieldDefaults.shape,
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 4.dp, end = 4.dp, top = 4.dp)
+            .clickable {
+                navController.navigate(GROUP_ADD_SCREEN)
+            }
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Image(
@@ -180,7 +191,7 @@ fun GroupCard() {
                     .size(40.dp)
             )
             Text(
-                text = "New Group",
+                text = stringResource(R.string.new_group),
                 color = Color.Black,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier

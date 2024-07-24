@@ -12,19 +12,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
 import com.example.etchatapplication.model.User
 import com.example.etchatapplication.ui.screen.home.UserChatList
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatItem(user: User) {
+fun ChatItem(user: User, navController: NavHostController) {
     val show by remember { mutableStateOf(true) }
     val currentChat by rememberUpdatedState(newValue = user)
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { false },
         positionalThreshold = { fullWidth -> fullWidth * 0.2f }
     )
-
     AnimatedVisibility(show, exit = fadeOut(spring())) {
         SwipeToDismissBox(
             state = dismissState,
@@ -33,7 +33,7 @@ fun ChatItem(user: User) {
             },
             modifier = Modifier,
             content = {
-                UserChatList()
+                UserChatList(user,navController)
             }
         )
     }

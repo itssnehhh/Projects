@@ -146,7 +146,7 @@ fun SignUpScreen(navController: NavHostController) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password).copy(
                         imeAction = ImeAction.Next
                     ),
-                    supportingText = { Text(text = "Password must be at least 8 characters long and must contains one capital text,one number,one special character") },
+                    supportingText = { Text(text = stringResource(R.string.password_hint)) },
                 )
                 Button(
                     colors = ButtonDefaults.buttonColors(Color(0xFF2BCA8D)),
@@ -166,7 +166,7 @@ fun SignUpScreen(navController: NavHostController) {
                             } else {
                                 Toast.makeText(
                                     context,
-                                    "The email address is already in use by another account.",
+                                    context.getString(R.string.toast_email_exist),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
@@ -232,6 +232,12 @@ fun InputTextField(
             unfocusedContainerColor = Color(0xFFE2F8F0),
             unfocusedIndicatorColor = Color(0xFF008652),
             focusedIndicatorColor = Color(0xFF008652),
+            unfocusedLeadingIconColor = Color.Black,
+            focusedLeadingIconColor = Color.Black,
+            focusedTextColor = Color.Black,
+            unfocusedTextColor = Color.Black,
+            focusedLabelColor = Color.Black,
+            unfocusedLabelColor = Color.Black
         ),
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,

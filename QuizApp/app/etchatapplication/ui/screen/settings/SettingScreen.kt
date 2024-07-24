@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -65,29 +66,33 @@ fun SettingsScreen(
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-                text = "Settings",
+                text = stringResource(R.string.settings),
                 modifier = Modifier.padding(8.dp),
                 style = MaterialTheme.typography.titleLarge
             )
-            AppSettings(image = R.drawable.key, title = "Account")
-            AppSettings(image = R.drawable.chat, title = "Chats")
-            AppSettings(image = R.drawable.payment, title = "Payment")
+            AppSettings(image = R.drawable.key, title = stringResource(R.string.account))
+            AppSettings(image = R.drawable.chat, title = stringResource(R.string.chats))
+            AppSettings(image = R.drawable.payment, title = stringResource(R.string.payment))
             HorizontalDivider()
             Switch(
                 image = R.drawable.notification,
-                title = "Notification",
+                title = stringResource(R.string.notification),
                 checked = notification
             ) {
                 notification = !notification
             }
             HorizontalDivider()
-            Switch(image = R.drawable.night_mode, title = "Night Mode", checked = darkTheme) {
+            Switch(
+                image = R.drawable.night_mode,
+                title = stringResource(R.string.night_mode),
+                checked = darkTheme
+            ) {
                 darkThemeChange()
             }
             HorizontalDivider()
             AppSettings(
                 image = R.drawable.logout,
-                title = "Logout",
+                title = stringResource(R.string.btn_logout),
                 modifier = Modifier.clickable {
                     settingsViewModel.onDialogStatusChange(true)
 
@@ -108,24 +113,32 @@ fun SettingsScreen(
                         }
                     }
                 ) {
-                    Text(text = "Logout", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = stringResource(id = R.string.btn_logout),
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { settingsViewModel.onDialogStatusChange(false) }) {
-                    Text(text = "Cancel", color = Color.White,style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = stringResource(R.string.btn_cancel),
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
             },
             title = {
                 Text(
-                    text = "Logout",
+                    text = stringResource(R.string.logout),
                     color = Color.White,
                     style = MaterialTheme.typography.titleLarge
                 )
             },
             text = {
                 Text(
-                    text = "Are your sure you want to logout your account ?",
+                    text = stringResource(R.string.logout_dialog_msg),
                     color = Color.White,
                     style = MaterialTheme.typography.bodyLarge
                 )
@@ -217,7 +230,6 @@ fun ProfileCard(userName: String, userEmail: String) {
         }
     }
 }
-
 
 @Preview
 @Composable

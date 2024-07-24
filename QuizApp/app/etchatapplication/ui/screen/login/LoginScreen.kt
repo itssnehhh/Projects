@@ -29,8 +29,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -54,6 +52,7 @@ import androidx.navigation.NavHostController
 import com.example.etchatapplication.CONSTANTS.MAIN_SCREEN
 import com.example.etchatapplication.CONSTANTS.SIGN_UP_SCREEN
 import com.example.etchatapplication.R
+import com.example.etchatapplication.ui.screen.signup.InputTextField
 
 @Composable
 fun LoginScreen(navController: NavHostController) {
@@ -85,11 +84,10 @@ fun LoginScreen(navController: NavHostController) {
                         .padding(16.dp)
                 )
                 Spacer(modifier = Modifier.height(32.dp))
-                TextField(
+                InputTextField(
                     value = email,
                     onValueChange = { loginViewModel.onEmailChange(it) },
                     label = { Text(text = stringResource(id = R.string.email_address)) },
-                    maxLines = 1,
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Email,
@@ -99,21 +97,11 @@ fun LoginScreen(navController: NavHostController) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email).copy(
                         imeAction = ImeAction.Next
                     ),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFE2F8F0),
-                        unfocusedContainerColor = Color(0xFFE2F8F0),
-                        unfocusedIndicatorColor = Color(0xFF008652),
-                        focusedIndicatorColor = Color(0xFF008652),
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 )
-                TextField(
+                InputTextField(
                     value = password,
                     onValueChange = { loginViewModel.onPasswordChange(it) },
                     label = { Text(text = stringResource(id = R.string.password)) },
-                    maxLines = 1,
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Lock,
@@ -130,15 +118,6 @@ fun LoginScreen(navController: NavHostController) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password).copy(
                         imeAction = ImeAction.Next
                     ),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFE2F8F0),
-                        unfocusedContainerColor = Color(0xFFE2F8F0),
-                        unfocusedIndicatorColor = Color(0xFF008652),
-                        focusedIndicatorColor = Color(0xFF008652),
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 )
                 TextButton(onClick = { /*TODO*/ }, modifier = Modifier.fillMaxWidth()) {
                     Text(
@@ -175,7 +154,7 @@ fun LoginScreen(navController: NavHostController) {
                     modifier = Modifier.padding(16.dp)
                 ) {
                     HorizontalDivider(modifier = Modifier.weight(1f))
-                    Text(text = "OR", modifier = Modifier.padding(8.dp))
+                    Text(text = stringResource(R.string.or), modifier = Modifier.padding(8.dp))
                     HorizontalDivider(modifier = Modifier.weight(1f))
                 }
 

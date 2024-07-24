@@ -1,10 +1,10 @@
-package com.example.etchatapplication.ui.screen.home
+package com.example.etchatapplication.ui.screen.group.list
 
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -12,10 +12,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -32,54 +30,41 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.etchatapplication.CONSTANTS.CHAT_SCREEN
-import com.example.etchatapplication.CONSTANTS.USERS_LIST_SCREEN
 import com.example.etchatapplication.R
-import com.example.etchatapplication.model.User
-import com.example.etchatapplication.ui.component.ChatItem
-
+import com.example.etchatapplication.model.Group
 
 @Composable
-fun HomeScreen(navController: NavHostController) {
-    val homeViewModel = hiltViewModel<HomeViewModel>()
-    val userList by homeViewModel.userList.collectAsState()
-    Log.d("HOME_SCREEN", "HomeScreen:$userList ")
+fun GroupScreen(innerNavController: NavHostController) {
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { navController.navigate(USERS_LIST_SCREEN) },
-                containerColor = Color(0xFF2BCA8D)
-            ) {
-                Image(painter = painterResource(id = R.drawable.message), contentDescription = "")
-            }
+    val groupViewModel = hiltViewModel<GroupScreenViewModel>()
+    val groupList by groupViewModel.groupList.collectAsState()
+
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        item {
+            Text(
+                text = "Groups",
+                color = Color(0xFF2BCA8D),
+                fontWeight = FontWeight.W600,
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(16.dp)
+            )
         }
-    ) { paddingValues ->
-        LazyColumn(modifier = Modifier.padding(paddingValues)) {
-            item {
-                Text(
-                    text = "Chats",
-                    color = Color(0xFF2BCA8D),
-                    fontWeight = FontWeight.W600,
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
-            items(userList) { user ->
-                UserChatList(user = user, navController)
-            }
+        items(groupList) { group ->
+            GroupChatListCard(group,innerNavController)
         }
     }
+
 }
 
 @Composable
-fun UserChatList(user: User, navController: NavHostController) {
+fun GroupChatListCard(group: Group, innerNavController: NavHostController) {
     Card(
         colors = CardDefaults.cardColors(Color.White),
         shape = TextFieldDefaults.shape,
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                navController.navigate("$CHAT_SCREEN/${user.email}")
+                innerNavController.navigate("$CHAT_SCREEN/${group.id}")
             }
     ) {
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
@@ -98,7 +83,7 @@ fun UserChatList(user: User, navController: NavHostController) {
                     .padding(4.dp)
             ) {
                 Text(
-                    text = user.email,
+                    text = group.name,
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.Black,
                     modifier = Modifier.padding(vertical = 4.dp)
@@ -123,6 +108,6 @@ fun UserChatList(user: User, navController: NavHostController) {
 
 @Preview
 @Composable
-fun HomeScreenPreview() {
-    HomeScreen(NavHostController(LocalContext.current))
+fun GroupScreenPreview() {
+    GroupScreen(NavHostController(LocalContext.current))
 }

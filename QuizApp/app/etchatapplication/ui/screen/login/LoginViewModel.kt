@@ -5,6 +5,7 @@ import android.util.Patterns
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.etchatapplication.R
 import com.example.etchatapplication.repository.auth.FirebaseAuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -56,18 +57,23 @@ class LoginViewModel @Inject constructor(
     ) {
         when {
             email.isEmpty() || !isEmailValid(email) -> {
-                Toast.makeText(context, "Please enter valid email address", Toast.LENGTH_SHORT)
-                    .show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.toast_email_error), Toast.LENGTH_SHORT
+                ).show()
                 onResult(false)
             }
 
             password.isEmpty() -> {
-                Toast.makeText(context, "Please enter password", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.toast_empty_password), Toast.LENGTH_SHORT
+                ).show()
             }
 
             else -> {
                 viewModelScope.launch {
-                    withContext(Dispatchers.IO){
+                    withContext(Dispatchers.IO) {
                         _isLoading.value = true
                         delay(timeMillis = 1000L)
                         authRepository.logIn(email, password) { success ->

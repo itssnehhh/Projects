@@ -1,4 +1,4 @@
-package com.example.etchatapplication.ui.screen.users
+package com.example.etchatapplication.ui.screen.group.add
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,15 +14,23 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
-class UserListViewModel @Inject constructor(
+class GroupAddViewModel @Inject constructor(
     private val firestoreRepository: FirestoreRepository
 ) : ViewModel() {
+
+    private val _groupName = MutableStateFlow("")
+    val groupName: StateFlow<String> = _groupName
 
     private val _userList = MutableStateFlow<List<User>>(emptyList())
     val userList: StateFlow<List<User>> = _userList
 
     private val _isLoading = MutableStateFlow(false)
-    val isLoading : StateFlow<Boolean> = _isLoading
+    val isLoading: StateFlow<Boolean> = _isLoading
+
+
+    fun onGroupNameChange(name: String) {
+        _groupName.value = name
+    }
 
     init {
         getUserList()
@@ -39,10 +47,22 @@ class UserListViewModel @Inject constructor(
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
-                }
-                finally {
+                } finally {
                     _isLoading.value = false
                 }
+            }
+        }
+    }
+
+    fun createGroup(name: String, selectedUser: List<String>) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                firestoreRepository.createGroup(name, selectedUser)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
             }
         }
     }
