@@ -1,5 +1,6 @@
 package com.example.etchatapplication.ui.screen.home
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,30 +30,21 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.etchatapplication.CONSTANTS.CHAT_SCREEN
 import com.example.etchatapplication.CONSTANTS.USERS_LIST_SCREEN
 import com.example.etchatapplication.R
+import com.example.etchatapplication.model.ChatRoom
 import com.example.etchatapplication.model.User
 import com.example.etchatapplication.ui.component.ChatItem
 
 
 @Composable
 fun HomeScreen(navController: NavHostController) {
-
-    val userList = listOf(
-        User("", "User", "User", "", "user@gmail.com"),
-        User("", "User", "User", "", "user@gmail.com"),
-        User("", "User", "User", "", "user@gmail.com"),
-        User("", "User", "User", "", "user@gmail.com"),
-        User("", "User", "User", "", "user@gmail.com"),
-        User("", "User", "User", "", "user@gmail.com"),
-        User("", "User", "User", "", "user@gmail.com"),
-        User("", "User", "User", "", "user@gmail.com"),
-        User("", "User", "User", "", "user@gmail.com"),
-        User("", "User", "User", "", "user@gmail.com"),
-        User("", "User", "User", "", "user@gmail.com"),
-    )
+    val homeViewModel = hiltViewModel<HomeViewModel>()
+    val userList by homeViewModel.chatRooms.collectAsState()
+    Log.d("HOME_SCREEN", "HomeScreen:$userList ")
 
     Scaffold(
         floatingActionButton = {
@@ -70,24 +65,23 @@ fun HomeScreen(navController: NavHostController) {
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.padding(16.dp)
                 )
-
             }
             items(userList) { user ->
-                ChatItem(user = user, navController)
+                UserChatList(user = user, navController)
             }
         }
     }
 }
 
 @Composable
-fun UserChatList(navController: NavHostController) {
+fun UserChatList(user: ChatRoom, navController: NavHostController) {
     Card(
         colors = CardDefaults.cardColors(Color.White),
         shape = TextFieldDefaults.shape,
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                navController.navigate("$CHAT_SCREEN/1")
+                navController.navigate("$CHAT_SCREEN/${user.chatRoomId}")
             }
     ) {
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
@@ -106,13 +100,13 @@ fun UserChatList(navController: NavHostController) {
                     .padding(4.dp)
             ) {
                 Text(
-                    text = "Username",
+                    text = user.participants.toString(),
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.Black,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
                 Text(
-                    text = "lastMessage",
+                    text = user.lastMessage,
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.DarkGray
                 )

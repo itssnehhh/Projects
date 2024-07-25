@@ -46,6 +46,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.etchatapplication.R
 import com.example.etchatapplication.model.User
+import com.example.etchatapplication.ui.screen.login.LoadingDialog
 import com.example.etchatapplication.ui.screen.signup.InputTextField
 import com.google.firebase.auth.FirebaseAuth
 
@@ -56,18 +57,24 @@ fun GroupAddScreen(innerNavController: NavHostController) {
     val groupAddViewModel = hiltViewModel<GroupAddViewModel>()
     val groupName by groupAddViewModel.groupName.collectAsState()
     val userList by groupAddViewModel.userList.collectAsState()
-    val context = LocalContext.current
-
+    val isLoading by groupAddViewModel.isLoading.collectAsState()
     var selectedUsers by remember { mutableStateOf(listOf<String>()) }
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = stringResource(R.string.create_a_group)) },
+                title = {
+                    Text(
+                        text = stringResource(R.string.create_a_group),
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                },
                 navigationIcon = {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = null,
+                        contentDescription = "",
                         tint = Color.White,
                         modifier = Modifier
                             .padding(8.dp)
@@ -85,7 +92,7 @@ fun GroupAddScreen(innerNavController: NavHostController) {
             item {
                 Image(
                     painter = painterResource(id = R.drawable.account),
-                    contentDescription = null,
+                    contentDescription = "",
                     modifier = Modifier.padding(16.dp)
                 )
                 InputTextField(
@@ -95,20 +102,28 @@ fun GroupAddScreen(innerNavController: NavHostController) {
                 )
                 Button(
                     onClick = {
-                        if (groupName.isNotBlank() && selectedUsers.isNotEmpty()) {
-                            groupAddViewModel.createGroup(groupName, selectedUsers) { groupId ->
+                        when {
+                            groupName.isEmpty() -> {
                                 Toast.makeText(
-                                    context, "Group Created: $groupId",
+                                    context,
+                                    "Please enter group name",
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
-                            innerNavController.popBackStack()
-                        } else {
-                            Toast.makeText(
-                                context,
-                                "Please enter a group name and select users",
-                                Toast.LENGTH_SHORT
-                            ).show()
+
+                            selectedUsers.isEmpty() -> {
+                                Toast.makeText(
+                                    context,
+                                    "Please select group members",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+
+                            else -> {
+                                groupAddViewModel.createGroup(groupName, selectedUsers)
+                                innerNavController.popBackStack()
+                                Toast.makeText(context, "Group Created", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(Color(0xFF2BCA8D)),
@@ -129,12 +144,7 @@ fun GroupAddScreen(innerNavController: NavHostController) {
                 val currentUser = FirebaseAuth.getInstance().currentUser
                 if (currentUser != null) {
                     if (user.email != currentUser.email) {
-                        GroupUserCard(
-                            user = user,
-                            groupAddViewModel,
-                            groupName,
-                            selectedUsers
-                        ) { isChecked ->
+                        GroupUserCard(user = user, selectedUsers) { isChecked ->
                             selectedUsers = if (isChecked) {
                                 selectedUsers + user.email
                             } else {
@@ -145,19 +155,18 @@ fun GroupAddScreen(innerNavController: NavHostController) {
                 }
             }
         }
+        LoadingDialog(isLoading = isLoading)
     }
 }
 
 @Composable
 fun GroupUserCard(
     user: User,
-    groupAddViewModel: GroupAddViewModel,
-    groupName: String,
-    selectedUsers: List<String>,
-    onUserSelect: (Boolean) -> Unit,
+    selectedUser: List<String>,
+    onUserSelected: (Boolean) -> Unit
 ) {
 
-    var isChecked by remember { mutableStateOf(selectedUsers.contains(user.email)) }
+    var isChecked by remember { mutableStateOf(selectedUser.contains(user.email)) }
 
     Card(
         colors = CardDefaults.cardColors(Color.White),
@@ -171,13 +180,13 @@ fun GroupUserCard(
                 checked = isChecked,
                 onCheckedChange = {
                     isChecked = it
-                    onUserSelect(it)
+                    onUserSelected(it)
                 },
                 colors = CheckboxDefaults.colors(checkedColor = Color(0xFF2BCA8D))
             )
             Image(
                 painter = painterResource(id = R.drawable.account),
-                contentDescription = null,
+                contentDescription = "",
                 modifier = Modifier
                     .size(60.dp)
                     .padding(4.dp)

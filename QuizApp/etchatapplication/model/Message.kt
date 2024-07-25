@@ -1,10 +1,11 @@
 package com.example.etchatapplication.model
 
+
 data class Message(
-    val id: String = "",
-    val senderId: String = "",
-    val receiverId: String = "",
-    val message: String = "",
-    val timestamp: Long = 0L,
-    val isSent: Boolean = false
+    val messageId: String="",
+    val createdOn: Long=0L,
+    val seen: Boolean=false,
+    val sender: String="",
+    val text: String="",
+    val imageUrl: String = ""
 )

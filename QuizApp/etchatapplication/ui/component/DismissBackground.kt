@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.etchatapplication.R
+import com.example.etchatapplication.model.ChatRoom
 import com.example.etchatapplication.model.User
 import kotlinx.coroutines.delay
 
@@ -37,7 +38,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun DismissBackGround(
     dismissState: SwipeToDismissBoxState,
-    currentChat: User,
+    currentChat: ChatRoom,
 ) {
 
     val color = when (dismissState.dismissDirection) {

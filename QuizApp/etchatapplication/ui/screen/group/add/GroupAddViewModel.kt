@@ -2,7 +2,6 @@ package com.example.etchatapplication.ui.screen.group.add
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.etchatapplication.model.Group
 import com.example.etchatapplication.model.User
 import com.example.etchatapplication.repository.firestore.FirestoreRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,7 +27,6 @@ class GroupAddViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    val groupList = mutableListOf<String>()
 
     fun onGroupNameChange(name: String) {
         _groupName.value = name
@@ -41,25 +39,26 @@ class GroupAddViewModel @Inject constructor(
     private fun getUserList() {
         viewModelScope.launch {
             _isLoading.value = true
-            try {
-                firestoreRepository.getUsersList { users ->
-                    _userList.value = users
+            withContext(Dispatchers.IO) {
+                delay(1000)
+                try {
+                    firestoreRepository.getUsersList { users ->
+                        _userList.value = users
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                } finally {
+                    _isLoading.value = false
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            } finally {
-                _isLoading.value = false
             }
         }
     }
 
-    fun createGroup(name: String, selectedUsers: List<String>, callback: (String) -> Unit) {
+    fun createGroup(name: String, selectedUser: List<String>) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                firestoreRepository.createGroup(name, selectedUsers) { groupId ->
-                    callback(groupId)
-                }
+                firestoreRepository.createGroup(name, selectedUser)
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {

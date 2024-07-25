@@ -19,14 +19,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.example.etchatapplication.CONSTANTS.CHAT_SCREEN
 import com.example.etchatapplication.CONSTANTS.GROUP_ADD_SCREEN
+import com.example.etchatapplication.CONSTANTS.GROUP_CHAT_SCREEN
 import com.example.etchatapplication.CONSTANTS.GROUP_DETAIL_SCREEN
 import com.example.etchatapplication.CONSTANTS.GROUP_SCREEN
 import com.example.etchatapplication.CONSTANTS.HOME_SCREEN
@@ -55,7 +54,8 @@ fun MainScreen(navController: NavHostController, darkTheme: Boolean, darkThemeCh
         Scaffold(
             topBar = {
                 if (currentRoute !in listOf(
-                        USERS_LIST_SCREEN, "$CHAT_SCREEN/{userId}", GROUP_ADD_SCREEN
+                        USERS_LIST_SCREEN, "$CHAT_SCREEN/{userId}", GROUP_ADD_SCREEN,
+                        GROUP_CHAT_SCREEN
                     )
                 ) {
                     TopAppBar(
@@ -66,7 +66,8 @@ fun MainScreen(navController: NavHostController, darkTheme: Boolean, darkThemeCh
             },
             bottomBar = {
                 if (currentRoute !in listOf(
-                        USERS_LIST_SCREEN, "$CHAT_SCREEN/{userId}", GROUP_ADD_SCREEN
+                        USERS_LIST_SCREEN, "$CHAT_SCREEN/{userId}", GROUP_ADD_SCREEN,
+                        GROUP_CHAT_SCREEN
                     )
                 ) {
                     BottomNavigationBar(navController = innerNavController)
@@ -90,7 +91,7 @@ fun NavHostContainer(
     innerNavController: NavHostController,
     padding: PaddingValues,
     darkTheme: Boolean,
-    darkThemeChange: () -> Unit,
+    darkThemeChange: () -> Unit
 ) {
     NavHost(
         navController = innerNavController,
@@ -119,12 +120,9 @@ fun NavHostContainer(
         composable(GROUP_DETAIL_SCREEN) {
             GroupDetailScreen(innerNavController)
         }
-        composable(
-            "group_chat_screen/{groupId}",
-            arguments = listOf(navArgument("groupId") { type = NavType.StringType })
-            ) { backStackEntry ->
+        composable("$GROUP_CHAT_SCREEN/{groupId}") { backStackEntry ->
             val groupId = backStackEntry.arguments?.getString("groupId") ?: return@composable
-            GroupChatScreen(groupId = groupId , innerNavController = innerNavController )
+            GroupChatScreen(navController, groupId)
         }
     }
 }

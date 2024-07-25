@@ -1,11 +1,13 @@
 package com.example.etchatapplication.ui.screen.group.list
 
-import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
@@ -20,64 +22,92 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import com.example.etchatapplication.CONSTANTS.CHAT_SCREEN
+import com.example.etchatapplication.R
 import com.example.etchatapplication.model.Group
 
 @Composable
 fun GroupScreen(innerNavController: NavHostController) {
 
-    val groupViewModel = hiltViewModel<GroupViewModel>()
-    val groups by groupViewModel.groups.collectAsState()
-    Log.d("GROUPS", "GroupScreen: $groups")
+    val groupViewModel = hiltViewModel<GroupScreenViewModel>()
+    val groupList by groupViewModel.groupList.collectAsState()
 
-    LazyColumn(
-        modifier = Modifier.padding(16.dp).fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
             Text(
-                "Groups",
-                color = Color.Black,
-                modifier = Modifier.padding(8.dp),
-                style = MaterialTheme.typography.bodyMedium
+                text = "Groups",
+                color = Color(0xFF2BCA8D),
+                fontWeight = FontWeight.W600,
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(16.dp)
             )
         }
-        items(groups) { group ->
-            GroupCard(group = group) { selectedGroup ->
-                // Navigate to GroupChatScreen with group ID
-                innerNavController.navigate("group_chat_screen/${selectedGroup.id}")
-            }
+        items(groupList) { group ->
+            GroupChatListCard(group,innerNavController)
         }
     }
+
 }
 
-
 @Composable
-fun GroupCard(group: Group, onClick: (Group) -> Unit) {
+fun GroupChatListCard(group: Group, innerNavController: NavHostController) {
     Card(
         colors = CardDefaults.cardColors(Color.White),
         shape = TextFieldDefaults.shape,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp)
             .clickable {
-                onClick(group)
+                innerNavController.navigate("$CHAT_SCREEN/${group.id}")
             }
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = group.name,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.Black
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
+            Image(
+                painter = painterResource(id = R.drawable.account),
+                contentDescription = "",
+                modifier = Modifier
+                    .size(60.dp)
+                    .padding(4.dp)
+                    .align(Alignment.CenterVertically)
             )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(4.dp)
+            ) {
+                Text(
+                    text = group.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.Black,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+                Text(
+                    text = "lastMessage",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.DarkGray
+                )
+            }
             Text(
-                text = group.members.joinToString(", "),
+                text = "00:00",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Black
+                color = Color.Gray,
+                modifier = Modifier
+                    .align(Alignment.Bottom)
+                    .padding(horizontal = 4.dp)
             )
         }
     }
-    HorizontalDivider()
+}
+
+@Preview
+@Composable
+fun GroupScreenPreview() {
+    GroupScreen(NavHostController(LocalContext.current))
 }

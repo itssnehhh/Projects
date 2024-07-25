@@ -45,6 +45,7 @@ import com.example.etchatapplication.CONSTANTS.CHAT_SCREEN
 import com.example.etchatapplication.CONSTANTS.GROUP_ADD_SCREEN
 import com.example.etchatapplication.R
 import com.example.etchatapplication.model.User
+import com.example.etchatapplication.ui.screen.login.LoadingDialog
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -128,6 +129,7 @@ fun UserListScreen(navController: NavHostController) {
                 }
             }
         }
+        LoadingDialog(isLoading = isLoading)
     }
 }
 

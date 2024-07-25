@@ -12,26 +12,26 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class GroupViewModel @Inject constructor(
+class GroupScreenViewModel @Inject constructor(
     private val firestoreRepository: FirestoreRepository
 ) : ViewModel() {
 
-    private val _groups = MutableStateFlow<List<Group>>(emptyList())
-    val groups: StateFlow<List<Group>> = _groups
+    private val _groupList = MutableStateFlow<List<Group>>(emptyList())
+    val groupList : StateFlow<List<Group>> = _groupList
 
     init {
-        getGroups()
+        getGroupList()
     }
 
-    private fun getGroups() {
+    private fun getGroupList(){
         viewModelScope.launch {
             try {
                 firestoreRepository.getGroups { groupList ->
-                    Log.d("GroupViewModel", "Fetched groups: $groupList")
-                    _groups.value = groupList
+                    Log.d("GROUP_LIST", "getGroupList: $groupList ")
+                    _groupList.value = groupList
                 }
-            } catch (e: Exception) {
-                Log.e("GroupViewModel", "Error fetching groups: ${e.message}", e)
+            }catch (e:Exception){
+                Log.d("GROUP_LIST", "Error fetching groupList :- ${e.message}")
             }
         }
     }

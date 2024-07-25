@@ -1,12 +1,14 @@
 package com.example.etchatapplication.ui.screen.chat
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,6 +24,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -38,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -46,6 +50,7 @@ import androidx.navigation.NavHostController
 import com.example.etchatapplication.R
 import com.example.etchatapplication.model.Message
 import com.google.firebase.auth.FirebaseAuth
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,12 +59,19 @@ fun ChatScreen(innerNavController: NavHostController, userId: String?) {
     val chatViewModel = hiltViewModel<ChatViewModel>()
     val textMessage by chatViewModel.textMessage.collectAsState()
     val messages by chatViewModel.messages.collectAsState()
-
-    LaunchedEffect(Unit) {
-        if (userId != null) {
-            chatViewModel.initView(userId)
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+//            chatViewModel.uploadImageAndSendMessage(it, textMessage)
         }
     }
+
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            chatViewModel.getOrCreateChatRoom(listOf(FirebaseAuth.getInstance().currentUser?.email ?: "", userId))
+        }
+    }
+
 
     Scaffold(
         topBar = {
@@ -76,6 +88,7 @@ fun ChatScreen(innerNavController: NavHostController, userId: String?) {
                         )
                         Text(
                             text = "$userId",
+                            color = Color.White,
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.padding(8.dp)
                         )
@@ -119,17 +132,18 @@ fun ChatScreen(innerNavController: NavHostController, userId: String?) {
                         modifier = Modifier
                             .size(40.dp)
                             .padding(4.dp)
+                            .clickable { launcher.launch("image/*") }
                     )
-                    Image(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "",
-                        modifier = Modifier
-                            .size(40.dp)
-                            .padding(4.dp)
-                            .clickable {
-                                chatViewModel.sendMessage(textMessage)
-                            }
-                    )
+                    IconButton(
+                        onClick = { chatViewModel.sendMessage() },
+                        modifier = Modifier.padding(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "",
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
                 }
             }
         }
@@ -161,20 +175,15 @@ fun ChatScreen(innerNavController: NavHostController, userId: String?) {
 
 @Composable
 fun ChatCard(message: Message) {
-
-    val isCurrentUser = message.senderId == FirebaseAuth.getInstance().currentUser?.email
+    val isCurrentUser = message.sender == FirebaseAuth.getInstance().currentUser?.email
     val backgroundColor = if (isCurrentUser) Color(0xFF2BCA8D) else Color.Gray
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        horizontalArrangement = if (isCurrentUser) Arrangement.Start else Arrangement.End,
+        horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start,
     ) {
-        if (!isCurrentUser) {
-            Spacer(modifier = Modifier.weight(1f))
-        }
-
         Card(
             colors = CardDefaults.cardColors(backgroundColor),
             modifier = Modifier
@@ -182,14 +191,10 @@ fun ChatCard(message: Message) {
                 .clip(MaterialTheme.shapes.medium)
         ) {
             Text(
-                text = message.message,
+                text = message.text,
                 color = Color.White,
                 modifier = Modifier.padding(8.dp)
             )
-        }
-
-        if (isCurrentUser) {
-            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
