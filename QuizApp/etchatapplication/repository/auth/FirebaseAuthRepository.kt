@@ -24,6 +24,7 @@ class FirebaseAuthRepository @Inject constructor(
         lName: String,
         email: String,
         password: String,
+        imageUrl: String?,
         onResult: (Boolean) -> Unit
     ) {
         auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener { signUp ->
@@ -39,7 +40,8 @@ class FirebaseAuthRepository @Inject constructor(
                                 id = it.uid,
                                 firstname = fName,
                                 lastname = lName,
-                                email = email
+                                email = email,
+                                image = imageUrl?:""
                             )
                             firestoreRepository.addUser(it.uid, userDetails) { firestoreUpdate ->
                                 onResult(firestoreUpdate)

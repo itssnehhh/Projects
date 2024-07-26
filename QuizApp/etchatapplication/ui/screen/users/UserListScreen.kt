@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
@@ -32,7 +33,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -41,6 +44,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import coil.compose.rememberAsyncImagePainter
 import com.example.etchatapplication.CONSTANTS.CHAT_SCREEN
 import com.example.etchatapplication.CONSTANTS.GROUP_ADD_SCREEN
 import com.example.etchatapplication.R
@@ -147,11 +151,13 @@ fun UserCard(user: User, navController: NavHostController) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
             Image(
-                painter = painterResource(id = R.drawable.account),
+                painter = if (user.image?.isNotBlank() == true) rememberAsyncImagePainter(model = user.image) else painterResource(id = R.drawable.account),
                 contentDescription = "",
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(60.dp)
                     .padding(4.dp)
+                    .clip(CircleShape)
             )
             Column(modifier = Modifier.padding(8.dp)) {
                 Text(

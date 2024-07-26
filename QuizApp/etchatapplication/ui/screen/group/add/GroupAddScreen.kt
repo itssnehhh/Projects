@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -137,6 +138,15 @@ fun GroupAddScreen(innerNavController: NavHostController) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(20.dp)
+                )
+                Text(
+                    text = "Select the users",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    textAlign = TextAlign.Start,
+                    color = Color.DarkGray,
+                    style = MaterialTheme.typography.bodyMedium
                 )
                 HorizontalDivider()
             }

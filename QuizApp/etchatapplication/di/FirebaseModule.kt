@@ -27,7 +27,7 @@ class FirebaseModule {
 
     @Provides
     @Singleton
-    fun providedFirebaseStorage():FirebaseStorage{
+    fun provideFirebaseStorage():FirebaseStorage{
         return FirebaseStorage.getInstance()
     }
 }

@@ -1,0 +1,930 @@
+package com.example.etchatapplication.repository.auth
+
+import com.example.etchatapplication.model.User
+import com.example.etchatapplication.repository.firestore.FirestoreRepository
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class FirebaseAuthRepository @Inject constructor(
+    private val auth: FirebaseAuth,
+    private val firestoreRepository: FirestoreRepository
+) {
+    fun logIn(email: String, password: String, onResult: (Boolean) -> Unit) {
+        auth.signInWithEmailAndPassword(email, password)
+            .addOnCompleteListener { logIn ->
+                onResult(logIn.isSuccessful)
+            }
+    }
+
+    fun signUp(
+        fName: String,
+        lName: String,
+        email: String,
+        password: String,
+        imageUrl: String?,
+        onResult: (Boolean) -> Unit
+    ) {
+        auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener { signUp ->
+            if (signUp.isSuccessful) {
+                val user = auth.currentUser
+                user?.let {
+                    val userProfile = UserProfileChangeRequest.Builder()
+                        .setDisplayName("$fName $lName")
+                        .build()
+                    it.updateProfile(userProfile).addOnCompleteListener { profileUpdate ->
+                        if (profileUpdate.isSuccessful) {
+                            val userDetails = User(
+                                id = it.uid,
+                                firstname = fName,
+                                lastname = lName,
+                                email = email,
+                                image = imageUrl?:""
+                            )
+                            firestoreRepository.addUser(it.uid, userDetails) { firestoreUpdate ->
+                                onResult(firestoreUpdate)
+                            }
+                        } else {
+                            onResult(false)
+                        }
+                    }
+                }
+            } else {
+                onResult(false)
+            }
+        }
+    }
+    fun getCurrentUser() = auth.currentUser
+
+    fun logOut() {
+        auth.signOut()
+    }
+}
+
+package com.example.etchatapplication.repository.firestorage
+
+import android.net.Uri
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageReference
+import kotlinx.coroutines.tasks.await
+import java.util.UUID
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class StorageRepository @Inject constructor() {
+
+    private val storageReference = FirebaseStorage.getInstance().reference
+
+    suspend fun uploadProfilePicture(uri: Uri): String {
+        val profileImageRef =
+            storageReference.child("profile_images/${System.currentTimeMillis()}.jpg")
+        val uploadProfileImage = profileImageRef.putFile(uri).await()
+
+        return profileImageRef.downloadUrl.await().toString()
+    }
+
+    suspend fun uploadImage(uri: Uri): String {
+        val imageRef = storageReference.child("chat_images/${UUID.randomUUID()}.jpg")
+
+        val uploadTask = imageRef.putFile(uri).await()
+        return imageRef.downloadUrl.await().toString()
+    }
+}
+
+
+package com.example.etchatapplication.repository.firestore
+
+import android.net.Uri
+import android.util.Log
+import com.example.etchatapplication.model.ChatRoom
+import com.example.etchatapplication.model.Group
+import com.example.etchatapplication.model.Message
+import com.example.etchatapplication.model.User
+import com.example.etchatapplication.repository.firestorage.StorageRepository
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import java.util.UUID
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class FirestoreRepository @Inject constructor(
+    private val firestore: FirebaseFirestore,
+    private val storageRepository: StorageRepository
+) {
+
+    private val userCollection = firestore.collection("users")
+    private val groupCollection = firestore.collection("groups")
+    private val chatRoomCollection = firestore.collection("chatrooms")
+
+    fun addUser(uid: String, user: User, onResult: (Boolean) -> Unit) {
+        userCollection.document(uid)
+            .set(user)
+            .addOnCompleteListener { task ->
+                onResult(task.isSuccessful)
+            }
+            .addOnFailureListener { exception ->
+                exception.printStackTrace()
+                onResult(false)
+            }
+    }
+
+    fun getUsersList(onResult: (List<User>) -> Unit) {
+        userCollection.get()
+            .addOnSuccessListener { result ->
+                val users = result.map { it.toObject(User::class.java) }
+                onResult(users)
+            }
+            .addOnFailureListener { exception ->
+                exception.printStackTrace()
+                onResult(emptyList())
+            }
+    }
+
+    suspend fun sendMessageWithImage(
+        receiverEmail: String,
+        message: String = "",
+        imageUri: Uri,
+        onResult: (Boolean) -> Unit
+    ) {
+        try {
+            val imageUrl = storageRepository.uploadImage(imageUri)
+            sendMessageToRoom(receiverEmail, message, imageUrl, onResult)
+        } catch (e: Exception) {
+            onResult(false)
+        }
+    }
+
+    fun getOrCreateChatRoom(receiverEmail: String, onComplete: (String?) -> Unit) {
+
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        val senderEmail = currentUser?.email ?: return
+        val chatRoomId = generateChatRoomId(listOf(senderEmail, receiverEmail))
+        val chatRoomRef = chatRoomCollection.document(chatRoomId)
+
+        chatRoomRef.get().addOnSuccessListener { document ->
+            if (!document.exists()) {
+                val newChatRoom = ChatRoom(
+                    chatroomId = chatRoomId,
+                    senderId = senderEmail,
+                    receiverId = receiverEmail,
+                    lastMessage = "",
+                    participants = listOf(senderEmail, receiverEmail)
+                )
+                chatRoomRef.set(newChatRoom).addOnCompleteListener { task ->
+                    onComplete(if (task.isSuccessful) chatRoomId else null)
+                }
+            } else {
+                onComplete(chatRoomId)
+            }
+        }.addOnFailureListener { exception ->
+            Log.d("FirebaseRepository", "Error fetching chat room ", exception)
+            onComplete(null)
+        }
+    }
+
+    private fun generateChatRoomId(participants: List<String>): String {
+        return participants.sorted().joinToString(separator = "_")
+    }
+
+    fun sendMessageToRoom(
+        chatRoomId: String,
+        message: String,
+        imageUrl: String,
+        onResult: (Boolean) -> Unit
+    ) {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        val senderEmail = currentUser?.email ?: return
+        val messageId = UUID.randomUUID().toString()
+        val chatMessage = Message(
+            messageId = messageId,
+            message = message,
+            imageUrl = imageUrl,
+            senderId = senderEmail,
+            timestamp = System.currentTimeMillis(),
+            isSent = true
+        )
+
+        val messageRef = chatRoomCollection.document(chatRoomId)
+            .collection("messages")
+            .document(messageId)
+
+        firestore.runTransaction { transition ->
+            val chatRoomRef = chatRoomCollection.document(chatRoomId)
+            transition.set(messageRef, chatMessage)
+            transition.update(chatRoomRef, "lastMessage", message)
+        }.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                Log.d("FirebaseRepository", "Message sent successfully")
+            } else {
+                Log.e("FirebaseRepository", "Failed to sent message", task.exception)
+            }
+            onResult(task.isSuccessful)
+        }
+    }
+
+    fun getMessageFromChatRoom(chatRoomId: String): Flow<List<Message>> = callbackFlow {
+        val messageRef = chatRoomCollection.document(chatRoomId)
+            .collection("messages")
+            .orderBy("timestamp")
+
+        val subscription = messageRef.addSnapshotListener { value, error ->
+            if (error != null) {
+                Log.e("FirestoreRepository", "Error getting messages", error)
+                return@addSnapshotListener
+            }
+            if (value != null) {
+                val message = value.toObjects(Message::class.java)
+                Log.d("FirebaseRepository", "Fetched MessageList :-${message.size}")
+                trySend(message).isSuccess
+            }
+        }
+        awaitClose { subscription.remove() }
+    }
+
+    fun getRoomChats(): Flow<List<ChatRoom>> = callbackFlow {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        val senderEmail = currentUser?.email
+        val subscription =
+            chatRoomCollection.whereArrayContains("participants", senderEmail ?: return@callbackFlow)
+                .addSnapshotListener { value, error ->
+                    if (error != null) {
+                        Log.e("FirebaseRepository", "Error fetching room chats", error)
+                        return@addSnapshotListener
+                    }
+
+                    if (value != null) {
+                        val chatRooms = value.toObjects(ChatRoom::class.java)
+                        Log.d("FirebaseRepo", "Chat room fetched :- ${chatRooms.size}")
+                        chatRooms.forEach {
+                            Log.d(
+                                "FirestoreRepository",
+                                "Chat Room ID: ${it.chatroomId}, Participants: ${it.senderId} ${it.receiverId}"
+                            )
+                        }
+                        trySend(chatRooms).isSuccess
+                    } else {
+                        Log.d("FirestoreRepository", "No chat rooms found")
+                    }
+                }
+        awaitClose { subscription.remove() }
+    }
+
+    //Create a group
+    fun createGroup(name: String, selectedUsers: List<String>) {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        val currentUserEmail = currentUser?.email
+        val members = selectedUsers + currentUserEmail
+        val groupId = UUID.randomUUID().toString()
+        val group = Group(
+            id = groupId,
+            name = name,
+            users = members,
+            createdBy = currentUserEmail.toString()
+        )
+        groupCollection.add(group)
+            .addOnSuccessListener { documentListener ->
+                Log.d("GROUP_ID", "createGroup: ${documentListener.id}")
+            }
+            .addOnFailureListener { e ->
+                e.printStackTrace()
+            }
+    }
+
+    // Get GroupList
+    @Suppress("UNCHECKED_CAST")
+    fun getGroups(callback: (List<Group>) -> Unit) {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        if (currentUser == null) {
+            Log.e("FirestoreRepo", "No current user found.")
+            return
+        }
+
+        groupCollection
+            .whereArrayContains("users", currentUser.email ?: return)
+            .addSnapshotListener { snapshots, e ->
+                if (e != null) {
+                    Log.e("FirestoreRepo", "Error fetching groups: ${e.message}", e)
+                    return@addSnapshotListener
+                }
+                if (snapshots != null) {
+                    val groups = snapshots.documents.mapNotNull { doc ->
+                        try {
+                            Group(
+                                id = doc.id,
+                                name = doc.getString("name") ?: "",
+                                users = doc.get("members") as? List<String> ?: emptyList()
+                            )
+                        } catch (ex: Exception) {
+                            Log.e("FirestoreRepo", "Error parsing group document: ${doc.id}", ex)
+                            null
+                        }
+                    }
+                    callback(groups)
+                } else {
+                    Log.w("FirestoreRepo", "No groups found for the current user.")
+                    callback(emptyList())
+                }
+            }
+    }
+
+    fun sendMessageToGroup(groupId: String, senderId: String, content: String) {
+        val messageData = hashMapOf(
+            "senderId" to senderId,
+            "content" to content,
+            "timestamp" to System.currentTimeMillis()
+        )
+        groupCollection.document(groupId)
+            .collection("messages").add(messageData)
+            .addOnSuccessListener { documentReference ->
+                println("Message sent with ID: ${documentReference.id}")
+            }
+            .addOnFailureListener { e ->
+                e.printStackTrace()
+            }
+    }
+
+    fun getGroupMessages(groupId: String, callback: (List<Message>) -> Unit) {
+        groupCollection.document(groupId)
+            .collection("messages").orderBy("timestamp").addSnapshotListener { snapshots, e ->
+                if (e != null) {
+                    e.printStackTrace()
+                    return@addSnapshotListener
+                }
+                if (snapshots != null) {
+                    val messages = snapshots.documents.map { doc ->
+                        Message(
+                            senderId = doc.getString("senderId") ?: "",
+                            message = doc.getString("content") ?: "",
+                            timestamp = doc.getLong("timeStamp") ?: 0L
+                        )
+                    }
+                    callback(messages)
+                }
+            }
+    }
+
+    fun getGroupDetails(groupId: String, onComplete: (Group?) -> Unit) {
+        firestore.collection("groups").document(groupId).get().addOnSuccessListener { document ->
+            val group = document.toObject(Group::class.java)
+            onComplete(group)
+        }
+    }
+
+    fun exitGroup(groupId: String, userId: String, onComplete: (Boolean) -> Unit) {
+        val groupRef = firestore.collection("groups").document(groupId)
+        groupRef.update("users", FieldValue.arrayRemove(userId))
+            .addOnSuccessListener { onComplete(true) }
+            .addOnFailureListener { onComplete(false) }
+    }
+}
+
+
+package com.example.etchatapplication.ui.screen.group.detail
+
+import android.widget.Toast
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
+import com.example.etchatapplication.CONSTANTS.HOME_SCREEN
+import com.example.etchatapplication.R
+import com.google.firebase.auth.FirebaseAuth
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GroupDetailScreen(
+    innerNavController: NavHostController,
+    groupId: String,
+) {
+    val viewModel = hiltViewModel<GroupDetailViewModel>()
+    val group by viewModel.group.collectAsState()
+    val context = LocalContext.current
+    val currentUserEmail = FirebaseAuth.getInstance().currentUser?.email ?: ""
+
+    LaunchedEffect(Unit) {
+        viewModel.loadGroupDetails(groupId)
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(group?.name ?: "") },
+                navigationIcon = {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .clickable { innerNavController.popBackStack() }
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(Color(0xFF2BCA8D))
+            )
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            item {
+                Image(
+                    painter = painterResource(id = R.drawable.account),
+                    contentDescription = "",
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .size(120.dp)
+                        .clip(CircleShape)
+                )
+                Text(
+                    text = group?.name ?: "",
+                    modifier = Modifier.padding(8.dp),
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Divider()
+
+                group?.users?.forEach { user ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp, horizontal = 8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Image(
+                                painter = painterResource(id = R.drawable.account),
+                                contentDescription = "",
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .padding(8.dp)
+                            )
+                            Text(
+                                text = user.toString(),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(horizontal = 8.dp),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                    }
+                }
+            }
+            item {
+                Button(
+                    onClick = {
+                        viewModel.exitGroup(groupId, currentUserEmail) { success ->
+                            if (success) {
+                                // Navigate back or show a message
+                                innerNavController.navigate(HOME_SCREEN)
+                            } else {
+                                // Show an error message
+                                Toast.makeText(context, "Failed to exit group", Toast.LENGTH_SHORT)
+                                    .show()
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    colors = ButtonDefaults.buttonColors(Color.Red),
+                ) {
+                    Icon(painter = painterResource(id = R.drawable.logout), contentDescription = "")
+                    Text(text = "Exit Group", color = Color.White)
+                }
+            }
+        }
+    }
+}
+
+@Preview
+@Composable
+fun GroupDetailScreenPreview() {
+    GroupDetailScreen(innerNavController = NavHostController(LocalContext.current), groupId = "1")
+}
+package com.example.etchatapplication.ui.screen.group.detail
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.etchatapplication.model.Group
+import com.example.etchatapplication.repository.firestore.FirestoreRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class GroupDetailViewModel @Inject constructor(
+    private val firestoreRepository: FirestoreRepository
+) : ViewModel() {
+
+    private val _group = MutableStateFlow<Group?>(null)
+    val group: StateFlow<Group?> = _group
+
+    fun loadGroupDetails(groupId: String) {
+        viewModelScope.launch {
+            firestoreRepository.getGroupDetails(groupId) { group ->
+                _group.value = group
+            }
+        }
+    }
+
+    fun exitGroup(groupId: String, userId: String, onComplete: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            firestoreRepository.exitGroup(groupId, userId, onComplete)
+        }
+    }
+}
+
+@Composable
+fun SignUpScreen(navController: NavHostController) {
+
+    val context = LocalContext.current
+    val signUpViewModel = hiltViewModel<SignUpViewModel>()
+    val profileImageUri by signUpViewModel.profileImageUri.collectAsState()
+    val firstName by signUpViewModel.firstName.collectAsState()
+    val lastName by signUpViewModel.lastName.collectAsState()
+    val email by signUpViewModel.email.collectAsState()
+    val password by signUpViewModel.password.collectAsState()
+    val confirmPassword by signUpViewModel.cPassword.collectAsState()
+    val passwordVisible by signUpViewModel.passwordVisible.collectAsState()
+    val isLoading by signUpViewModel.isLoading.collectAsState()
+
+    val launcher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            if (uri != null) {
+                signUpViewModel.onProfileImageUriChange(uri)
+            }
+        }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(id = R.drawable.bg),
+            contentDescription = "",
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier
+                .fillMaxSize()
+        )
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            item {
+                Text(
+                    text = stringResource(R.string.talk_hub),
+                    fontFamily = FontFamily.Serif,
+                    style = MaterialTheme.typography.displaySmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                )
+                Image(
+                    painter = if (profileImageUri != null) rememberAsyncImagePainter(profileImageUri) else painterResource(
+                        id = R.drawable.account
+                    ),
+                    contentDescription = "",
+                    contentScale = ContentScale.FillBounds,
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .clip(CircleShape)
+                        .size(160.dp)
+                        .clickable {
+                            launcher.launch("image/*")
+                        }
+                )
+                InputTextField(
+                    value = firstName,
+                    onValueChange = { signUpViewModel.onFirstNameChange(it) },
+                    label = { Text(text = stringResource(R.string.first_name)) },
+                )
+                InputTextField(
+                    value = lastName,
+                    onValueChange = { signUpViewModel.onLastNameChange(it) },
+                    label = { Text(text = stringResource(R.string.last_name)) },
+                )
+                InputTextField(
+                    value = email,
+                    onValueChange = { signUpViewModel.onEmailChange(it) },
+                    label = { Text(text = stringResource(R.string.email_address)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                        .copy(imeAction = ImeAction.Next),
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Default.Email, contentDescription = "")
+                    }
+                )
+                InputTextField(
+                    value = password,
+                    onValueChange = { signUpViewModel.onPasswordChange(it) },
+                    label = { Text(text = stringResource(R.string.password)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                        .copy(imeAction = ImeAction.Next),
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Default.Lock, contentDescription = "")
+                    },
+                    trailingIcon = {
+                        val image = if (passwordVisible) R.drawable.hidden else R.drawable.show
+                        IconButton(onClick = { signUpViewModel.onVisibilityChange(!passwordVisible) }) {
+                            Image(painter = painterResource(id = image), "")
+                        }
+                    },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation()
+                )
+                InputTextField(
+                    value = confirmPassword,
+                    onValueChange = { signUpViewModel.onConfirmPasswordChange(it) },
+                    label = { Text(text = stringResource(R.string.confirm_password)) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = ""
+                        )
+                    },
+                    trailingIcon = {
+                        val image = if (passwordVisible) R.drawable.hidden else R.drawable.show
+                        IconButton(onClick = { signUpViewModel.onVisibilityChange(!passwordVisible) }) {
+                            Image(painter = painterResource(id = image), "")
+                        }
+                    },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password).copy(
+                        imeAction = ImeAction.Next
+                    ),
+                    supportingText = { Text(text = stringResource(R.string.password_hint)) },
+                )
+                Button(
+                    colors = ButtonDefaults.buttonColors(Color(0xFF2BCA8D)),
+                    onClick = {
+                        signUpViewModel.createAccount(
+                            imageUri = profileImageUri.toString(),
+                            firstName = firstName,
+                            lastName = lastName,
+                            email = email,
+                            password = password,
+                            confirmPassword = confirmPassword,
+                            context = context
+                        ) { isValid ->
+                            if (isValid) {
+                                profileImageUri?.let { uri ->
+                                    signUpViewModel.uploadProfileImage(uri)
+                                    navController.navigate(MAIN_SCREEN) {
+                                        popUpTo(LOGIN_SCREEN) { inclusive = true }
+                                    }
+                                } ?: run {
+                                    navController.navigate(MAIN_SCREEN) {
+                                        popUpTo(LOGIN_SCREEN) { inclusive = true }
+                                    }
+                                }
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.toast_email_exist),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(text = stringResource(R.string.btn_signup))
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.already_have_an_account),
+                        fontWeight = FontWeight.W400,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    TextButton(
+                        onClick = {
+                            navController.navigate(LOGIN_SCREEN)
+                        }
+                    ) {
+                        Text(
+                            text = stringResource(R.string.btn_login),
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2BCA8D),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                }
+            }
+        }
+        LoadingDialog(isLoading = isLoading)
+    }
+}
+
+package com.example.etchatapplication.ui.screen.signup
+
+import android.content.Context
+import android.net.Uri
+import android.util.Patterns
+import android.widget.Toast
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.etchatapplication.R
+import com.example.etchatapplication.repository.auth.FirebaseAuthRepository
+import com.example.etchatapplication.repository.firestorage.StorageRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
+
+@HiltViewModel
+class SignUpViewModel @Inject constructor(
+    private val authRepository: FirebaseAuthRepository,
+    private val storageRepository: StorageRepository
+) : ViewModel() {
+
+    private val fName = MutableStateFlow("")
+    val firstName: StateFlow<String> = fName
+
+    private val lName = MutableStateFlow("")
+    val lastName: StateFlow<String> = lName
+
+    private val _email = MutableStateFlow("")
+    val email: StateFlow<String> = _email
+
+    private val _password = MutableStateFlow("")
+    val password: StateFlow<String> = _password
+
+    private val _cPassword = MutableStateFlow("")
+    val cPassword: StateFlow<String> = _cPassword
+
+    private val _passwordVisible = MutableStateFlow(false)
+    val passwordVisible: StateFlow<Boolean> = _passwordVisible
+
+    private val _profileImageUri = MutableStateFlow<Uri?>(null)
+    val profileImageUri: StateFlow<Uri?> = _profileImageUri
+
+    fun onProfileImageUriChange(uri: Uri) {
+        _profileImageUri.value = uri
+    }
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
+    fun onFirstNameChange(name: String) {
+        fName.value = name
+    }
+
+    fun onLastNameChange(surname: String) {
+        lName.value = surname
+    }
+
+    fun onEmailChange(email: String) {
+        _email.value = email
+    }
+
+    fun onPasswordChange(password: String) {
+        _password.value = password
+    }
+
+    fun onConfirmPasswordChange(confirmPassword: String) {
+        _cPassword.value = confirmPassword
+    }
+
+    fun onVisibilityChange(status: Boolean) {
+        _passwordVisible.value = status
+    }
+
+    private fun isEmailValid(email: String): Boolean {
+        return Patterns.EMAIL_ADDRESS.matcher(email).matches()
+    }
+
+    private fun isPasswordValid(password: String): Boolean {
+        val passwordRegex = "^(?=.*[A-Z])(?=.*\\d)(?=.*[@\$!%*?&])[A-Za-z\\d@\$!%*?&]{8,}$"
+        return password.matches(passwordRegex.toRegex())
+    }
+
+    fun createAccount(
+        imageUri: String,
+        firstName: String,
+        lastName: String,
+        email: String,
+        password: String,
+        confirmPassword: String,
+        context: Context,
+        onResult: (Boolean) -> Unit
+    ) {
+        when {
+            firstName.isEmpty() || lastName.isEmpty() -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.toast_empty_fields), Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            email.isEmpty() || !isEmailValid(email) -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.toast_email_error),
+                    Toast.LENGTH_SHORT
+                )
+                    .show()
+                onResult(false)
+            }
+
+            password.isEmpty() || !isPasswordValid(password) -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.toast_valid_password), Toast.LENGTH_SHORT
+                ).show()
+                onResult(false)
+            }
+
+            confirmPassword.isEmpty() || confirmPassword != password -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.toast_password_mismatch), Toast.LENGTH_SHORT
+                ).show()
+                onResult(false)
+            }
+
+            else -> {
+                viewModelScope.launch {
+                    withContext(Dispatchers.IO) {
+                        _isLoading.value = true
+                        delay(1000L)
+                        authRepository.signUp(
+                            fName = firstName,
+                            lName = lastName,
+                            email = email,
+                            password = password,
+                            imageUrl = imageUri
+                        ) { success ->
+                            _isLoading.value = false
+                            onResult(success)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun uploadProfileImage(uri: Uri) {
+        viewModelScope.launch {
+            storageRepository.uploadProfilePicture(uri)
+        }
+    }
+}
+        composable("$GROUP_DETAIL_SCREEN/{groupId}") { navBackStack ->
+            val groupId = navBackStack.arguments?.getString("groupId")
+            if (groupId != null)
+                GroupDetailScreen(innerNavController, groupId)
+        }

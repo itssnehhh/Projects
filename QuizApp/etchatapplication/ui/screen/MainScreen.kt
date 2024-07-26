@@ -55,7 +55,7 @@ fun MainScreen(navController: NavHostController, darkTheme: Boolean, darkThemeCh
             topBar = {
                 if (currentRoute !in listOf(
                         USERS_LIST_SCREEN, "$CHAT_SCREEN/{userId}", GROUP_ADD_SCREEN,
-                        GROUP_CHAT_SCREEN
+                        "$GROUP_CHAT_SCREEN/{groupId}", "$GROUP_DETAIL_SCREEN/{groupId}"
                     )
                 ) {
                     TopAppBar(
@@ -67,7 +67,7 @@ fun MainScreen(navController: NavHostController, darkTheme: Boolean, darkThemeCh
             bottomBar = {
                 if (currentRoute !in listOf(
                         USERS_LIST_SCREEN, "$CHAT_SCREEN/{userId}", GROUP_ADD_SCREEN,
-                        GROUP_CHAT_SCREEN
+                        "$GROUP_CHAT_SCREEN/{groupId}", "$GROUP_DETAIL_SCREEN/{groupId}"
                     )
                 ) {
                     BottomNavigationBar(navController = innerNavController)
@@ -91,7 +91,7 @@ fun NavHostContainer(
     innerNavController: NavHostController,
     padding: PaddingValues,
     darkTheme: Boolean,
-    darkThemeChange: () -> Unit
+    darkThemeChange: () -> Unit,
 ) {
     NavHost(
         navController = innerNavController,
@@ -117,12 +117,16 @@ fun NavHostContainer(
         composable(GROUP_ADD_SCREEN) {
             GroupAddScreen(innerNavController)
         }
-        composable(GROUP_DETAIL_SCREEN) {
-            GroupDetailScreen(innerNavController)
+        composable("$GROUP_DETAIL_SCREEN/{groupId}") { navBackStack ->
+            val groupId = navBackStack.arguments?.getString("groupId")
+            if (groupId != null)
+                GroupDetailScreen(innerNavController, groupId)
         }
-        composable("$GROUP_CHAT_SCREEN/{groupId}") { backStackEntry ->
-            val groupId = backStackEntry.arguments?.getString("groupId") ?: return@composable
-            GroupChatScreen(navController, groupId)
+        composable("$GROUP_CHAT_SCREEN/{groupId}") { navBackStack ->
+            val groupId = navBackStack.arguments?.getString("groupId")
+            if (groupId != null) {
+                GroupChatScreen(innerNavController, groupId)
+            }
         }
     }
 }

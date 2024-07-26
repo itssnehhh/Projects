@@ -1,7 +1,10 @@
 package com.example.etchatapplication.ui.screen.signup
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -10,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
@@ -28,6 +32,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -43,6 +48,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import coil.compose.rememberAsyncImagePainter
 import com.example.etchatapplication.CONSTANTS.LOGIN_SCREEN
 import com.example.etchatapplication.CONSTANTS.MAIN_SCREEN
 import com.example.etchatapplication.R
@@ -53,6 +59,7 @@ fun SignUpScreen(navController: NavHostController) {
 
     val context = LocalContext.current
     val signUpViewModel = hiltViewModel<SignUpViewModel>()
+    val profileImageUri by signUpViewModel.profileImageUri.collectAsState()
     val firstName by signUpViewModel.firstName.collectAsState()
     val lastName by signUpViewModel.lastName.collectAsState()
     val email by signUpViewModel.email.collectAsState()
@@ -60,6 +67,13 @@ fun SignUpScreen(navController: NavHostController) {
     val confirmPassword by signUpViewModel.cPassword.collectAsState()
     val passwordVisible by signUpViewModel.passwordVisible.collectAsState()
     val isLoading by signUpViewModel.isLoading.collectAsState()
+
+    val launcher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            if (uri != null) {
+                signUpViewModel.onProfileImageUriChange(uri)
+            }
+        }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -69,7 +83,11 @@ fun SignUpScreen(navController: NavHostController) {
             modifier = Modifier
                 .fillMaxSize()
         )
-        LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             item {
                 Text(
                     text = stringResource(R.string.talk_hub),
@@ -81,13 +99,18 @@ fun SignUpScreen(navController: NavHostController) {
                         .padding(16.dp)
                 )
                 Image(
-                    painter = painterResource(id = R.drawable.account),
+                    painter = if (profileImageUri != null) rememberAsyncImagePainter(profileImageUri) else painterResource(
+                        id = R.drawable.account
+                    ),
                     contentDescription = "",
+                    contentScale = ContentScale.FillBounds,
                     modifier = Modifier
                         .padding(16.dp)
-                        .align(Alignment.Center)
-                        .fillMaxWidth()
+                        .clip(CircleShape)
                         .size(160.dp)
+                        .clickable {
+                            launcher.launch("image/*")
+                        }
                 )
                 InputTextField(
                     value = firstName,
@@ -152,6 +175,7 @@ fun SignUpScreen(navController: NavHostController) {
                     colors = ButtonDefaults.buttonColors(Color(0xFF2BCA8D)),
                     onClick = {
                         signUpViewModel.createAccount(
+                            imageUri = profileImageUri.toString(),
                             firstName = firstName,
                             lastName = lastName,
                             email = email,
@@ -160,8 +184,15 @@ fun SignUpScreen(navController: NavHostController) {
                             context = context
                         ) { isValid ->
                             if (isValid) {
-                                navController.navigate(MAIN_SCREEN) {
-                                    popUpTo(LOGIN_SCREEN) { inclusive = true }
+                                profileImageUri?.let { uri ->
+                                    signUpViewModel.uploadProfileImage(uri)
+                                    navController.navigate(MAIN_SCREEN) {
+                                        popUpTo(LOGIN_SCREEN) { inclusive = true }
+                                    }
+                                } ?: run {
+                                    navController.navigate(MAIN_SCREEN) {
+                                        popUpTo(LOGIN_SCREEN) { inclusive = true }
+                                    }
                                 }
                             } else {
                                 Toast.makeText(
@@ -193,7 +224,10 @@ fun SignUpScreen(navController: NavHostController) {
                         style = MaterialTheme.typography.bodyLarge
                     )
                     TextButton(
-                        onClick = { navController.navigate(LOGIN_SCREEN) }) {
+                        onClick = {
+                            navController.navigate(LOGIN_SCREEN)
+                        }
+                    ) {
                         Text(
                             text = stringResource(R.string.btn_login),
                             fontWeight = FontWeight.Bold,

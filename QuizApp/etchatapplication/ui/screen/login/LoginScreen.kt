@@ -259,7 +259,7 @@ fun LoadingDialog(isLoading: Boolean) {
                     CircularProgressIndicator(color = Color(0xFF2BCA8D))
                     Spacer(modifier = Modifier.height(20.dp))
                     Text(
-                        text = "Logging in...",
+                        text = "Loading...",
                         color = Color.White,
                         style = MaterialTheme.typography.titleMedium
                     )

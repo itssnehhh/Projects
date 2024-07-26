@@ -1,13 +1,12 @@
 package com.example.etchatapplication.ui.screen.group.chat
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.example.etchatapplication.model.Message
 import com.example.etchatapplication.repository.firestore.FirestoreRepository
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -21,31 +20,29 @@ class GroupChatViewModel @Inject constructor(
     private val _newMessage = MutableStateFlow("")
     val newMessage: StateFlow<String> = _newMessage
 
-    // Group ID should be set before calling fetchMessages or sendMessage
-    lateinit var groupId: String
+    private lateinit var  groupId :String
+
+    fun init(groupId: String){
+        this.groupId = groupId
+        loadMessages(groupId)
+    }
+
+    private fun loadMessages(groupId: String) {
+        firestoreRepository.getGroupMessages(groupId) { messages ->
+            _messages.value = messages
+        }
+    }
+
+    fun sendMessage(groupId: String) {
+        val senderId = FirebaseAuth.getInstance().currentUser?.email ?: ""
+        val content = _newMessage.value
+        if (content.isNotBlank()) {
+            firestoreRepository.sendMessageToGroup(groupId, senderId, content)
+            _newMessage.value = ""
+        }
+    }
 
     fun updateMessage(message: String) {
         _newMessage.value = message
-    }
-
-    fun sendMessage() {
-        val message = _newMessage.value.trim()
-        if (message.isNotEmpty() && this::groupId.isInitialized) {
-//            firestoreRepository.sendMessageToGroup(groupId, message) { success ->
-//                if (success) {
-//                    _newMessage.value = ""
-//                }
-//            }
-        }
-    }
-
-    fun fetchMessages() {
-        if (this::groupId.isInitialized) {
-            viewModelScope.launch {
-                firestoreRepository.getGroupMessages(groupId).collect { messages ->
-                    _messages.value = messages
-                }
-            }
-        }
     }
 }

@@ -1,12 +1,14 @@
 package com.example.etchatapplication.ui.screen.signup
 
 import android.content.Context
+import android.net.Uri
 import android.util.Patterns
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.etchatapplication.R
 import com.example.etchatapplication.repository.auth.FirebaseAuthRepository
+import com.example.etchatapplication.repository.firestorage.StorageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -19,6 +21,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SignUpViewModel @Inject constructor(
     private val authRepository: FirebaseAuthRepository,
+    private val storageRepository: StorageRepository
 ) : ViewModel() {
 
     private val fName = MutableStateFlow("")
@@ -38,6 +41,13 @@ class SignUpViewModel @Inject constructor(
 
     private val _passwordVisible = MutableStateFlow(false)
     val passwordVisible: StateFlow<Boolean> = _passwordVisible
+
+    private val _profileImageUri = MutableStateFlow<Uri?>(null)
+    val profileImageUri: StateFlow<Uri?> = _profileImageUri
+
+    fun onProfileImageUriChange(uri: Uri) {
+        _profileImageUri.value = uri
+    }
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -76,6 +86,7 @@ class SignUpViewModel @Inject constructor(
     }
 
     fun createAccount(
+        imageUri: String,
         firstName: String,
         lastName: String,
         email: String,
@@ -123,13 +134,25 @@ class SignUpViewModel @Inject constructor(
                     withContext(Dispatchers.IO) {
                         _isLoading.value = true
                         delay(1000L)
-                        authRepository.signUp(firstName, lastName, email, password) { success ->
+                        authRepository.signUp(
+                            fName = firstName,
+                            lName = lastName,
+                            email = email,
+                            password = password,
+                            imageUrl = imageUri
+                        ) { success ->
                             _isLoading.value = false
                             onResult(success)
                         }
                     }
                 }
             }
+        }
+    }
+
+    fun uploadProfileImage(uri: Uri) {
+        viewModelScope.launch {
+            storageRepository.uploadProfilePicture(uri)
         }
     }
 }

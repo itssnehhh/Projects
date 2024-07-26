@@ -29,7 +29,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.example.etchatapplication.CONSTANTS.CHAT_SCREEN
+import com.example.etchatapplication.CONSTANTS.GROUP_CHAT_SCREEN
 import com.example.etchatapplication.R
 import com.example.etchatapplication.model.Group
 
@@ -48,9 +48,10 @@ fun GroupScreen(innerNavController: NavHostController) {
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(16.dp)
             )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
         }
         items(groupList) { group ->
-            GroupChatListCard(group,innerNavController)
+            GroupChatListCard(group, innerNavController)
         }
     }
 
@@ -64,10 +65,10 @@ fun GroupChatListCard(group: Group, innerNavController: NavHostController) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                innerNavController.navigate("$CHAT_SCREEN/${group.id}")
+                innerNavController.navigate("$GROUP_CHAT_SCREEN/${group.id}")
             }
     ) {
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
             Image(
                 painter = painterResource(id = R.drawable.account),
@@ -103,6 +104,7 @@ fun GroupChatListCard(group: Group, innerNavController: NavHostController) {
                     .padding(horizontal = 4.dp)
             )
         }
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
     }
 }
 

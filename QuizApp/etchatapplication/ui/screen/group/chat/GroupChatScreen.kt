@@ -1,12 +1,15 @@
 package com.example.etchatapplication.ui.screen.group.chat
 
-import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -42,8 +46,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import com.example.etchatapplication.CONSTANTS.GROUP_DETAIL_SCREEN
 import com.example.etchatapplication.R
+import com.example.etchatapplication.model.Message
 import com.google.firebase.auth.FirebaseAuth
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,14 +58,16 @@ fun GroupChatScreen(innerNavController: NavHostController, groupId: String) {
 
     val groupChatViewModel = hiltViewModel<GroupChatViewModel>()
     val messages by groupChatViewModel.messages.collectAsState()
-    val newMessage by groupChatViewModel.newMessage.collectAsState()
+    val textMessage by groupChatViewModel.newMessage.collectAsState()
 
-    LaunchedEffect(key1 = groupId) {
-        groupChatViewModel.groupId = groupId
-        groupChatViewModel.fetchMessages()
+    LaunchedEffect(Unit) {
+        groupChatViewModel.init(groupId)
     }
 
-    Log.d("MESSAGES", "GroupChatScreen: ${groupChatViewModel.fetchMessages()}")
+    val launcher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) {
+
+        }
 
     Scaffold(
         topBar = {
@@ -71,10 +80,10 @@ fun GroupChatScreen(innerNavController: NavHostController, groupId: String) {
                             modifier = Modifier
                                 .size(60.dp)
                                 .padding(4.dp)
-                                .border(1.dp, Color.DarkGray, CircleShape)
+                                .border(1.dp, Color.LightGray, CircleShape)
                         )
                         Text(
-                            text = "Group: $groupId",
+                            text = groupId,
                             color = Color.White,
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.padding(8.dp)
@@ -91,14 +100,17 @@ fun GroupChatScreen(innerNavController: NavHostController, groupId: String) {
                             .clickable { innerNavController.popBackStack() }
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(Color(0xFF2BCA8D))
+                colors = TopAppBarDefaults.topAppBarColors(Color(0xFF2BCA8D)),
+                modifier = Modifier.clickable {
+                    innerNavController.navigate("$GROUP_DETAIL_SCREEN/$groupId")
+                }
             )
         },
         bottomBar = {
             BottomAppBar(containerColor = Color.LightGray) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TextField(
-                        value = newMessage,
+                        value = textMessage,
                         onValueChange = { groupChatViewModel.updateMessage(it) },
                         maxLines = 4,
                         placeholder = { Text(text = stringResource(R.string.enter_a_message)) },
@@ -119,6 +131,9 @@ fun GroupChatScreen(innerNavController: NavHostController, groupId: String) {
                         modifier = Modifier
                             .size(40.dp)
                             .padding(4.dp)
+                            .clickable {
+                                launcher.launch("image/*")
+                            }
                     )
                     Image(
                         imageVector = Icons.AutoMirrored.Filled.Send,
@@ -127,7 +142,7 @@ fun GroupChatScreen(innerNavController: NavHostController, groupId: String) {
                             .size(40.dp)
                             .padding(4.dp)
                             .clickable {
-                                groupChatViewModel.sendMessage()
+                                groupChatViewModel.sendMessage(groupId)
                             }
                     )
                 }
@@ -151,15 +166,45 @@ fun GroupChatScreen(innerNavController: NavHostController, groupId: String) {
                     .fillMaxSize()
                     .padding(8.dp)
             ) {
-                items(messages) { message ->
-                    Text(
-                        text = message.text,
-                        color = if (message.sender == FirebaseAuth.getInstance().currentUser?.email) Color.Blue else Color.Black,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(4.dp)
-                    )
+                items(messages) { messages ->
+                    GroupChatScreen(messages)
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun GroupChatScreen(message: Message) {
+    val isCurrentUser = message.senderId == FirebaseAuth.getInstance().currentUser?.email
+    val backgroundColor = if (isCurrentUser) Color(0xFF2BCA8D) else Color.Gray
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start,
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(backgroundColor),
+            modifier = Modifier
+                .padding(horizontal = 8.dp)
+                .clip(MaterialTheme.shapes.medium)
+        ) {
+            Text(
+                text = message.senderId,
+                color = Color.White,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .align(Alignment.Start)
+            )
+            Text(
+                text = message.message,
+                color = Color.White,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp, top = 4.dp)
+            )
         }
     }
 }
@@ -167,5 +212,5 @@ fun GroupChatScreen(innerNavController: NavHostController, groupId: String) {
 @Preview
 @Composable
 fun GroupChatScreenPreview() {
-    GroupChatScreen(NavHostController(LocalContext.current), "sampleGroupId")
+    GroupChatScreen(NavHostController(LocalContext.current), "1")
 }

@@ -22,9 +22,9 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -41,16 +41,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImagePainter
+import coil.compose.rememberAsyncImagePainter
 import com.example.etchatapplication.R
 import com.example.etchatapplication.model.Message
 import com.google.firebase.auth.FirebaseAuth
-import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,19 +59,20 @@ fun ChatScreen(innerNavController: NavHostController, userId: String?) {
     val chatViewModel = hiltViewModel<ChatViewModel>()
     val textMessage by chatViewModel.textMessage.collectAsState()
     val messages by chatViewModel.messages.collectAsState()
-    val context = LocalContext.current
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let {
-//            chatViewModel.uploadImageAndSendMessage(it, textMessage)
-        }
-    }
 
     LaunchedEffect(userId) {
         if (userId != null) {
-            chatViewModel.getOrCreateChatRoom(listOf(FirebaseAuth.getInstance().currentUser?.email ?: "", userId))
+            chatViewModel.getOrCreateRoom(userId)
         }
     }
 
+    val launcher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
+            if (uri != null) {
+                chatViewModel.uploadImageAndSendMessage(uri, textMessage)
+            }
+            chatViewModel.onImageUrlChange(uri)
+        }
 
     Scaffold(
         topBar = {
@@ -114,12 +115,19 @@ fun ChatScreen(innerNavController: NavHostController, userId: String?) {
                         value = textMessage,
                         onValueChange = { chatViewModel.onTextMessageChange(it) },
                         maxLines = 4,
-                        placeholder = { Text(text = stringResource(R.string.enter_a_message)) },
+                        placeholder = {
+                            Text(
+                                text = stringResource(R.string.enter_a_message),
+                                color = Color.DarkGray
+                            )
+                        },
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.White,
                             unfocusedContainerColor = Color.White,
                             unfocusedIndicatorColor = Color.White,
                             focusedIndicatorColor = Color.White,
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black
                         ),
                         modifier = Modifier
                             .weight(1f)
@@ -132,18 +140,20 @@ fun ChatScreen(innerNavController: NavHostController, userId: String?) {
                         modifier = Modifier
                             .size(40.dp)
                             .padding(4.dp)
-                            .clickable { launcher.launch("image/*") }
+                            .clickable {
+                                launcher.launch("image/*")
+                            }
                     )
-                    IconButton(
-                        onClick = { chatViewModel.sendMessage() },
-                        modifier = Modifier.padding(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "",
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
+                    Image(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .padding(4.dp)
+                            .clickable {
+                                chatViewModel.sendMessage(textMessage)
+                            }
+                    )
                 }
             }
         }
@@ -175,7 +185,8 @@ fun ChatScreen(innerNavController: NavHostController, userId: String?) {
 
 @Composable
 fun ChatCard(message: Message) {
-    val isCurrentUser = message.sender == FirebaseAuth.getInstance().currentUser?.email
+
+    val isCurrentUser = message.senderId == FirebaseAuth.getInstance().currentUser?.email
     val backgroundColor = if (isCurrentUser) Color(0xFF2BCA8D) else Color.Gray
 
     Row(
@@ -184,17 +195,36 @@ fun ChatCard(message: Message) {
             .padding(vertical = 4.dp),
         horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start,
     ) {
-        Card(
-            colors = CardDefaults.cardColors(backgroundColor),
-            modifier = Modifier
-                .padding(horizontal = 8.dp)
-                .clip(MaterialTheme.shapes.medium)
-        ) {
-            Text(
-                text = message.text,
-                color = Color.White,
-                modifier = Modifier.padding(8.dp)
-            )
+        if (message.message.isNotBlank())
+            Card(
+                colors = CardDefaults.cardColors(backgroundColor),
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .clip(MaterialTheme.shapes.medium)
+            ) {
+                Text(
+                    text = message.message,
+                    color = Color.White,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
+        if (message.imageUrl?.isNotBlank() == true) {
+            val painter = rememberAsyncImagePainter(message.imageUrl)
+            Box {
+                if (painter.state is AsyncImagePainter.State.Loading) {
+                    CircularProgressIndicator(
+                        color = Color(0xFF2BCA8D),
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .align(Alignment.Center)
+                    )
+                }
+                Image(
+                    painter = painter,
+                    contentDescription = null,
+                    modifier = Modifier.size(120.dp)
+                )
+            }
         }
     }
 }

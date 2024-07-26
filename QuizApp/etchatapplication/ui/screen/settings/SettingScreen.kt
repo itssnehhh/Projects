@@ -20,6 +20,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,6 +40,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import coil.compose.rememberAsyncImagePainter
 import com.example.etchatapplication.CONSTANTS.LOGIN_SCREEN
 import com.example.etchatapplication.R
 
@@ -48,10 +50,10 @@ fun SettingsScreen(
     darkTheme: Boolean,
     darkThemeChange: () -> Unit
 ) {
-
     val settingsViewModel = hiltViewModel<SettingsViewModel>()
     var notification by rememberSaveable { mutableStateOf(true) }
     val currentUser by settingsViewModel.currentUser.observeAsState()
+    val profileImageUrl by settingsViewModel.profileImageUrl.observeAsState()
     val showDialog by settingsViewModel.showDialog.collectAsState()
 
     LazyColumn(
@@ -62,7 +64,8 @@ fun SettingsScreen(
         item {
             ProfileCard(
                 userName = currentUser?.displayName ?: "User Name",
-                userEmail = currentUser?.email ?: "Email"
+                userEmail = currentUser?.email ?: "Email",
+                profileImageUrl = profileImageUrl
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(
@@ -95,7 +98,6 @@ fun SettingsScreen(
                 title = stringResource(R.string.btn_logout),
                 modifier = Modifier.clickable {
                     settingsViewModel.onDialogStatusChange(true)
-
                 }
             )
         }
@@ -186,13 +188,19 @@ fun Switch(image: Int, title: String, checked: Boolean, onCheckedChange: ((Boole
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedTrackColor = Color(0xFF2BCA8D),
+                uncheckedTrackColor = Color.LightGray,
+                checkedThumbColor = Color.White
+            ),
             modifier = Modifier.padding(horizontal = 8.dp)
         )
     }
 }
 
 @Composable
-fun ProfileCard(userName: String, userEmail: String) {
+fun ProfileCard(userName: String, userEmail: String, profileImageUrl: String?) {
+    println(profileImageUrl)
     Card(
         colors = CardDefaults.cardColors(Color(0xFF2BCA8D)),
         modifier = Modifier
@@ -200,9 +208,13 @@ fun ProfileCard(userName: String, userEmail: String) {
             .padding(8.dp)
     ) {
         Row {
+            val painter = rememberAsyncImagePainter(
+                model = profileImageUrl ?: R.drawable.account,
+                placeholder = painterResource(id = R.drawable.account)
+            )
             Image(
-                painter = painterResource(id = R.drawable.account),
-                contentDescription = "",
+                painter = painter,
+                contentDescription = null,
                 modifier = Modifier
                     .size(120.dp)
                     .padding(8.dp)

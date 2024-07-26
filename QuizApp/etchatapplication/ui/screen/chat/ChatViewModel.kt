@@ -1,5 +1,6 @@
 package com.example.etchatapplication.ui.screen.chat
 
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,33 +21,44 @@ class ChatViewModel @Inject constructor(
     val textMessage: StateFlow<String> = _textMessage
 
     private val _chatRoomId = MutableStateFlow<String?>(null)
-    val chatRoomId: StateFlow<String?> = _chatRoomId
+
+    private val _image = MutableStateFlow(Uri.parse(""))
+    val image: StateFlow<Uri?> = _image
 
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
     val messages: StateFlow<List<Message>> = _messages
 
-    fun onTextMessageChange(message: String) {
-        _textMessage.value = message
+    fun onTextMessageChange(text: String) {
+        _textMessage.value = text
     }
 
-    fun getOrCreateChatRoom(participants: List<String>) {
-        firestoreRepository.getOrCreateChatRoom(participants) { chatRoomId ->
+    fun onImageUrlChange(imageUrl: Uri?) {
+        _image.value = imageUrl
+    }
+
+    fun getOrCreateRoom(receiverId: String) {
+        firestoreRepository.getOrCreateChatRoom(receiverId) { chatRoomId ->
             _chatRoomId.value = chatRoomId
             if (chatRoomId != null) {
-                observeMessages(chatRoomId)
+                observeMessage(chatRoomId)
             } else {
-                Log.e("ChatViewModel", "Failed to create or get chat room")
+                Log.e("ChatViewModel", "Failed to get or create chat room")
             }
         }
     }
 
-    fun sendMessage() {
+    fun sendMessage(message: String) {
         val chatRoomId = _chatRoomId.value ?: return
-        val messageText = _textMessage.value.trim()
-        if (messageText.isNotEmpty()) {
-            firestoreRepository.sendMessage(chatRoomId, messageText) { success ->
+        val messageText = message.trim()
+        if (messageText.isNotBlank()) {
+            firestoreRepository.sendMessageToRoom(
+                chatRoomId,
+                messageText,
+                _image.value.toString()
+            ) { success ->
                 if (success) {
                     _textMessage.value = ""
+                    _image.value = null
                 } else {
                     Log.e("ChatViewModel", "Failed to send message")
                 }
@@ -54,10 +66,27 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    private fun observeMessages(chatRoomId: String) {
+    fun uploadImageAndSendMessage(imageUri: Uri, textMessage: String) {
+        val chatRoomId = _chatRoomId.value ?: return
         viewModelScope.launch {
-            firestoreRepository.getMessages(chatRoomId).collect { messages ->
+            firestoreRepository.sendMessageWithImage(
+                chatRoomId,
+                textMessage,
+                imageUri
+            ) { success ->
+                if (success) {
+                    _textMessage.value = ""
+                    _image.value = Uri.parse("")
+                }
+            }
+        }
+    }
+
+    private fun observeMessage(chatRoomId: String) {
+        viewModelScope.launch {
+            firestoreRepository.getMessageFromChatRoom(chatRoomId).collect { messages ->
                 _messages.value = messages
+                println(messages)
             }
         }
     }
