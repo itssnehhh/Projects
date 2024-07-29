@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,19 +31,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.example.etchatapplication.CONSTANTS.CHAT_SCREEN
-import com.example.etchatapplication.CONSTANTS.USERS_LIST_SCREEN
 import com.example.etchatapplication.R
+import com.example.etchatapplication.constants.CONSTANTS.CHAT_SCREEN
+import com.example.etchatapplication.constants.CONSTANTS.USERS_LIST_SCREEN
 import com.example.etchatapplication.model.ChatRoom
-import com.example.etchatapplication.ui.component.ChatItem
-
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun HomeScreen(navController: NavHostController) {
 
     val homeViewModel = hiltViewModel<HomeViewModel>()
-    val userList by homeViewModel.userList.collectAsState()
-    println(userList)
+    val chatRoomList by homeViewModel.chatRoomList.collectAsState()
 
     Scaffold(
         floatingActionButton = {
@@ -54,7 +53,11 @@ fun HomeScreen(navController: NavHostController) {
             }
         }
     ) { paddingValues ->
-        LazyColumn(modifier = Modifier.padding(paddingValues)) {
+        LazyColumn(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        ) {
             item {
                 Text(
                     text = "Chats",
@@ -65,9 +68,19 @@ fun HomeScreen(navController: NavHostController) {
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
             }
-            items(userList) { user ->
-                println(user)
-                ChatItem(user = user, navController)
+            item {
+                if (chatRoomList.isEmpty()) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(text = "No Chats available", modifier = Modifier.padding(16.dp))
+                    }
+                }
+            }
+
+            items(chatRoomList) { user ->
+                UserChatList(user = user, navController)
             }
         }
     }
@@ -75,16 +88,19 @@ fun HomeScreen(navController: NavHostController) {
 
 @Composable
 fun UserChatList(user: ChatRoom, navController: NavHostController) {
+
+    val currentUser = FirebaseAuth.getInstance().currentUser?.email ?: return
+    val otherUser = user.participants.contains(currentUser)
+
     Card(
         colors = CardDefaults.cardColors(Color.White),
         shape = TextFieldDefaults.shape,
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                navController.navigate("$CHAT_SCREEN/${user.receiverId}")
+                navController.navigate("$CHAT_SCREEN/${user.participants}")
             }
     ) {
-
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
             Image(
                 painter = painterResource(id = R.drawable.account),

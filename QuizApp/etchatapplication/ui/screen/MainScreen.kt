@@ -23,21 +23,21 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.etchatapplication.CONSTANTS.CHAT_SCREEN
-import com.example.etchatapplication.CONSTANTS.GROUP_ADD_SCREEN
-import com.example.etchatapplication.CONSTANTS.GROUP_CHAT_SCREEN
-import com.example.etchatapplication.CONSTANTS.GROUP_DETAIL_SCREEN
-import com.example.etchatapplication.CONSTANTS.GROUP_SCREEN
-import com.example.etchatapplication.CONSTANTS.HOME_SCREEN
-import com.example.etchatapplication.CONSTANTS.SETTINGS_SCREEN
-import com.example.etchatapplication.CONSTANTS.USERS_LIST_SCREEN
 import com.example.etchatapplication.R
+import com.example.etchatapplication.constants.CONSTANTS.CHAT_SCREEN
+import com.example.etchatapplication.constants.CONSTANTS.GROUP_ADD_SCREEN
+import com.example.etchatapplication.constants.CONSTANTS.GROUP_CHAT_SCREEN
+import com.example.etchatapplication.constants.CONSTANTS.GROUP_DETAIL_SCREEN
+import com.example.etchatapplication.constants.CONSTANTS.GROUP_SCREEN
+import com.example.etchatapplication.constants.CONSTANTS.HOME_SCREEN
+import com.example.etchatapplication.constants.CONSTANTS.SETTINGS_SCREEN
+import com.example.etchatapplication.constants.CONSTANTS.USERS_LIST_SCREEN
 import com.example.etchatapplication.model.BottomNavItem
 import com.example.etchatapplication.ui.screen.chat.ChatScreen
-import com.example.etchatapplication.ui.screen.group.list.GroupScreen
 import com.example.etchatapplication.ui.screen.group.add.GroupAddScreen
 import com.example.etchatapplication.ui.screen.group.chat.GroupChatScreen
 import com.example.etchatapplication.ui.screen.group.detail.GroupDetailScreen
+import com.example.etchatapplication.ui.screen.group.list.GroupScreen
 import com.example.etchatapplication.ui.screen.home.HomeScreen
 import com.example.etchatapplication.ui.screen.settings.SettingsScreen
 import com.example.etchatapplication.ui.screen.users.UserListScreen
@@ -91,7 +91,7 @@ fun NavHostContainer(
     innerNavController: NavHostController,
     padding: PaddingValues,
     darkTheme: Boolean,
-    darkThemeChange: () -> Unit,
+    darkThemeChange: () -> Unit
 ) {
     NavHost(
         navController = innerNavController,
@@ -119,9 +119,11 @@ fun NavHostContainer(
         }
         composable("$GROUP_DETAIL_SCREEN/{groupId}") { navBackStack ->
             val groupId = navBackStack.arguments?.getString("groupId")
-            if (groupId != null)
+            if (groupId != null) {
                 GroupDetailScreen(innerNavController, groupId)
+            }
         }
+
         composable("$GROUP_CHAT_SCREEN/{groupId}") { navBackStack ->
             val groupId = navBackStack.arguments?.getString("groupId")
             if (groupId != null) {

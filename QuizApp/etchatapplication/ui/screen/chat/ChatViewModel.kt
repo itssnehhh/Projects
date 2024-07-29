@@ -37,15 +37,18 @@ class ChatViewModel @Inject constructor(
     }
 
     fun getOrCreateRoom(receiverId: String) {
+        Log.d("ChatViewModel", "Getting or creating room with $receiverId")
         firestoreRepository.getOrCreateChatRoom(receiverId) { chatRoomId ->
             _chatRoomId.value = chatRoomId
             if (chatRoomId != null) {
+                Log.d("ChatViewModel", "Chat room obtained: $chatRoomId")
                 observeMessage(chatRoomId)
             } else {
                 Log.e("ChatViewModel", "Failed to get or create chat room")
             }
         }
     }
+
 
     fun sendMessage(message: String) {
         val chatRoomId = _chatRoomId.value ?: return

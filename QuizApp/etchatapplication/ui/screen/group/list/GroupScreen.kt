@@ -29,8 +29,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.example.etchatapplication.CONSTANTS.GROUP_CHAT_SCREEN
 import com.example.etchatapplication.R
+import com.example.etchatapplication.constants.CONSTANTS.GROUP_CHAT_SCREEN
 import com.example.etchatapplication.model.Group
 
 @Composable
@@ -38,6 +38,8 @@ fun GroupScreen(innerNavController: NavHostController) {
 
     val groupViewModel = hiltViewModel<GroupScreenViewModel>()
     val groupList by groupViewModel.groupList.collectAsState()
+
+
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
@@ -50,11 +52,20 @@ fun GroupScreen(innerNavController: NavHostController) {
             )
             HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
         }
+        item {
+            if (groupList.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = "No Groups available", modifier = Modifier.padding(16.dp))
+                }
+            }
+        }
         items(groupList) { group ->
             GroupChatListCard(group, innerNavController)
         }
     }
-
 }
 
 @Composable

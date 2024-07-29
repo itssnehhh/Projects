@@ -11,7 +11,6 @@ import com.example.etchatapplication.repository.auth.FirebaseAuthRepository
 import com.example.etchatapplication.repository.firestorage.StorageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -133,7 +132,6 @@ class SignUpViewModel @Inject constructor(
                 viewModelScope.launch {
                     withContext(Dispatchers.IO) {
                         _isLoading.value = true
-                        delay(1000L)
                         authRepository.signUp(
                             fName = firstName,
                             lName = lastName,
@@ -150,9 +148,12 @@ class SignUpViewModel @Inject constructor(
         }
     }
 
-    fun uploadProfileImage(uri: Uri) {
+    fun uploadProfileImage(uri: Uri): String {
         viewModelScope.launch {
-            storageRepository.uploadProfilePicture(uri)
+            withContext(Dispatchers.IO) {
+                storageRepository.uploadProfilePicture(uri)
+            }
         }
+        return uri.toString()
     }
 }

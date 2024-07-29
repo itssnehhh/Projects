@@ -49,9 +49,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.example.etchatapplication.CONSTANTS.MAIN_SCREEN
-import com.example.etchatapplication.CONSTANTS.SIGN_UP_SCREEN
 import com.example.etchatapplication.R
+import com.example.etchatapplication.constants.CONSTANTS.MAIN_SCREEN
+import com.example.etchatapplication.constants.CONSTANTS.SIGN_UP_SCREEN
 import com.example.etchatapplication.ui.screen.signup.InputTextField
 
 @Composable

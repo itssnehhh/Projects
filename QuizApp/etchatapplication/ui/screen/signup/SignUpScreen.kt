@@ -49,9 +49,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
-import com.example.etchatapplication.CONSTANTS.LOGIN_SCREEN
-import com.example.etchatapplication.CONSTANTS.MAIN_SCREEN
 import com.example.etchatapplication.R
+import com.example.etchatapplication.constants.CONSTANTS.LOGIN_SCREEN
+import com.example.etchatapplication.constants.CONSTANTS.MAIN_SCREEN
 import com.example.etchatapplication.ui.screen.login.LoadingDialog
 
 @Composable
@@ -169,7 +169,7 @@ fun SignUpScreen(navController: NavHostController) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password).copy(
                         imeAction = ImeAction.Next
                     ),
-                    supportingText = { Text(text = stringResource(R.string.password_hint)) },
+                    supportingText = { Text(text = stringResource(R.string.password_hint), color = Color.DarkGray) },
                 )
                 Button(
                     colors = ButtonDefaults.buttonColors(Color(0xFF2BCA8D)),

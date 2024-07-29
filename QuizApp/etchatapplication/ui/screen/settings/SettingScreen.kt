@@ -40,9 +40,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import coil.compose.rememberAsyncImagePainter
-import com.example.etchatapplication.CONSTANTS.LOGIN_SCREEN
 import com.example.etchatapplication.R
+import com.example.etchatapplication.constants.CONSTANTS.LOGIN_SCREEN
 
 @Composable
 fun SettingsScreen(
@@ -50,10 +49,10 @@ fun SettingsScreen(
     darkTheme: Boolean,
     darkThemeChange: () -> Unit
 ) {
+
     val settingsViewModel = hiltViewModel<SettingsViewModel>()
     var notification by rememberSaveable { mutableStateOf(true) }
     val currentUser by settingsViewModel.currentUser.observeAsState()
-    val profileImageUrl by settingsViewModel.profileImageUrl.observeAsState()
     val showDialog by settingsViewModel.showDialog.collectAsState()
 
     LazyColumn(
@@ -65,7 +64,6 @@ fun SettingsScreen(
             ProfileCard(
                 userName = currentUser?.displayName ?: "User Name",
                 userEmail = currentUser?.email ?: "Email",
-                profileImageUrl = profileImageUrl
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(
@@ -199,8 +197,7 @@ fun Switch(image: Int, title: String, checked: Boolean, onCheckedChange: ((Boole
 }
 
 @Composable
-fun ProfileCard(userName: String, userEmail: String, profileImageUrl: String?) {
-    println(profileImageUrl)
+fun ProfileCard(userName: String, userEmail: String) {
     Card(
         colors = CardDefaults.cardColors(Color(0xFF2BCA8D)),
         modifier = Modifier
@@ -208,13 +205,9 @@ fun ProfileCard(userName: String, userEmail: String, profileImageUrl: String?) {
             .padding(8.dp)
     ) {
         Row {
-            val painter = rememberAsyncImagePainter(
-                model = profileImageUrl ?: R.drawable.account,
-                placeholder = painterResource(id = R.drawable.account)
-            )
             Image(
-                painter = painter,
-                contentDescription = null,
+                painter = painterResource(id = R.drawable.account),
+                contentDescription = "",
                 modifier = Modifier
                     .size(120.dp)
                     .padding(8.dp)

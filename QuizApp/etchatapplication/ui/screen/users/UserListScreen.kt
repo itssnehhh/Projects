@@ -45,9 +45,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
-import com.example.etchatapplication.CONSTANTS.CHAT_SCREEN
-import com.example.etchatapplication.CONSTANTS.GROUP_ADD_SCREEN
 import com.example.etchatapplication.R
+import com.example.etchatapplication.constants.CONSTANTS.CHAT_SCREEN
+import com.example.etchatapplication.constants.CONSTANTS.GROUP_ADD_SCREEN
 import com.example.etchatapplication.model.User
 import com.example.etchatapplication.ui.screen.login.LoadingDialog
 import com.google.firebase.auth.FirebaseAuth
@@ -107,7 +107,6 @@ fun UserListScreen(navController: NavHostController) {
             )
         }
     ) { paddingValues ->
-
         if (isLoading) {
             Column(
                 modifier = Modifier
@@ -117,6 +116,13 @@ fun UserListScreen(navController: NavHostController) {
                 verticalArrangement = Arrangement.Center
             ) {
                 CircularProgressIndicator(color = Color(0xFF2BCA8D))
+            }
+        } else if (userList.isEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = "No Users available", modifier = Modifier.padding(16.dp))
             }
         } else {
             LazyColumn(modifier = Modifier.padding(paddingValues)) {
@@ -151,7 +157,9 @@ fun UserCard(user: User, navController: NavHostController) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
             Image(
-                painter = if (user.image?.isNotBlank() == true) rememberAsyncImagePainter(model = user.image) else painterResource(id = R.drawable.account),
+                painter = if (user.image?.isNotBlank() == true) rememberAsyncImagePainter(model = user.image) else painterResource(
+                    id = R.drawable.account
+                ),
                 contentDescription = "",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

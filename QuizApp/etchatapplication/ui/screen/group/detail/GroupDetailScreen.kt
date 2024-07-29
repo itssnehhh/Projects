@@ -1,6 +1,5 @@
 package com.example.etchatapplication.ui.screen.group.detail
 
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
@@ -12,15 +11,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.Divider
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -33,24 +36,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.example.etchatapplication.CONSTANTS.HOME_SCREEN
 import com.example.etchatapplication.R
-import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupDetailScreen(
     innerNavController: NavHostController,
-    groupId: String,
+    groupId: String
 ) {
     val viewModel = hiltViewModel<GroupDetailViewModel>()
     val group by viewModel.group.collectAsState()
+    val isShowing by viewModel.show.collectAsState()
     val context = LocalContext.current
-    val currentUserEmail = FirebaseAuth.getInstance().currentUser?.email ?: ""
 
     LaunchedEffect(Unit) {
         viewModel.loadGroupDetails(groupId)
@@ -59,7 +60,7 @@ fun GroupDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(group?.name ?: "") },
+                title = { Text(group?.name ?: "", color = Color.White) },
                 navigationIcon = {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -94,13 +95,14 @@ fun GroupDetailScreen(
                     modifier = Modifier.padding(8.dp),
                     style = MaterialTheme.typography.titleLarge
                 )
-                Divider()
-
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                 group?.users?.forEach { user ->
                     Card(
+                        colors = CardDefaults.cardColors(Color.White),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp, horizontal = 8.dp)
+                            .clip(TextFieldDefaults.shape)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Image(
@@ -115,41 +117,88 @@ fun GroupDetailScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .padding(horizontal = 8.dp),
+                                color = Color.Black,
                                 style = MaterialTheme.typography.titleMedium
                             )
+                            if (user.toString() == group?.createdBy) {
+                                Text(
+                                    text = "Admin",
+                                    color = Color(0xFF009E06),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
                         }
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
                     }
                 }
             }
             item {
                 Button(
                     onClick = {
-                        viewModel.exitGroup(groupId, currentUserEmail) { success ->
-                            if (success) {
-                                // Navigate back or show a message
-                                innerNavController.navigate(HOME_SCREEN)
-                            } else {
-                                // Show an error message
-                                Toast.makeText(context, "Failed to exit group", Toast.LENGTH_SHORT)
-                                    .show()
-                            }
-                        }
+                        viewModel.showExitDialog(true)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
                     colors = ButtonDefaults.buttonColors(Color.Red),
                 ) {
-                    Icon(painter = painterResource(id = R.drawable.logout), contentDescription = "")
-                    Text(text = "Exit Group", color = Color.White)
+                    Text(
+                        text = stringResource(R.string.btn_exit),
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                    Icon(
+                        painter = painterResource(id = R.drawable.logout),
+                        contentDescription = "",
+                        tint = Color.White
+                    )
                 }
             }
         }
     }
+
+    if (isShowing) {
+        AlertDialog(
+            containerColor = Color(0xFF2BCA8D),
+            onDismissRequest = { viewModel.showExitDialog(true) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteGroup(groupId, context, innerNavController)
+                    }
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.exit),
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.showExitDialog(false) }) {
+                    Text(
+                        text = stringResource(R.string.btn_cancel),
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.yes),
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to exit from group ?",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        )
+    }
 }
 
-@Preview
-@Composable
-fun GroupDetailScreenPreview() {
-    GroupDetailScreen(innerNavController = NavHostController(LocalContext.current), groupId = "1")
-}
