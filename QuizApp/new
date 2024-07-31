@@ -50,3 +50,53 @@ service cloud.firestore {
     }
   }
 }
+---------------------------------------------------
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // This rule allows anyone with your Firestore database reference to view, edit,
+    // and delete all data in your Firestore database. It is useful for getting
+    // started, but it is configured to expire after 30 days because it
+    // leaves your app open to attackers. At that time, all client
+    // requests to your Firestore database will be denied.
+    //
+    // Make sure to write security rules for your app before that time, or else
+    // all client requests to your Firestore database will be denied until you Update
+    // your rules
+    // match /{document=**} {
+    //   allow read, write: if true;
+    // }
+    
+     // Rules for the users collection
+    match /users/{id} {
+      allow read : if request.auth != null
+      allow write: if request.auth != null  && request.auth.uid == id;
+    }
+
+//     // Rules for the chatrooms collection
+//     match /chatrooms/{chatroomId} {
+//       allow read: if request.auth != null && request.auth.uid in resource.data.participants;
+//       allow create: if request.auth != null;
+//       allow update: if request.auth != null && request.auth.uid in resource.data.participants;
+      
+//       // Rules for messages sub-collection within chatrooms
+//       match /messages/{messageId} {
+//         allow read, write: if request.auth != null && request.auth.uid in resource.parent.data.participants;
+//       }
+//     }
+
+//     // Rules for the groups collection
+//     match /groups/{groupId} {
+//       allow read, write: if request.auth != null && request.auth.uid in resource.data.users;
+      
+//       // Rules for messages sub-collection within groups
+//       match /messages/{messageId} {
+//         allow read, write: if request.auth != null && request.auth.uid in resource.parent.data.users;
+//       }
+//     }
+    
+  }
+}
