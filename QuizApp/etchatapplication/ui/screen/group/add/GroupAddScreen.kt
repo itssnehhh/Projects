@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -37,7 +38,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -45,10 +48,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import coil.compose.rememberAsyncImagePainter
 import com.example.etchatapplication.R
 import com.example.etchatapplication.model.User
-import com.example.etchatapplication.ui.screen.login.LoadingDialog
-import com.example.etchatapplication.ui.screen.signup.InputTextField
+import com.example.etchatapplication.ui.common.InputTextField
+import com.example.etchatapplication.ui.common.LoadingDialog
+import com.example.etchatapplication.ui.theme.CustomGreen
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,7 +87,7 @@ fun GroupAddScreen(innerNavController: NavHostController) {
                             .clickable { innerNavController.popBackStack() }
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(Color(0xFF2BCA8D))
+                colors = TopAppBarDefaults.topAppBarColors(CustomGreen)
             )
         }
     ) { paddingValues ->
@@ -107,7 +112,7 @@ fun GroupAddScreen(innerNavController: NavHostController) {
                             groupName.isEmpty() -> {
                                 Toast.makeText(
                                     context,
-                                    "Please enter group name",
+                                    context.getString(R.string.group_name_toast),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
@@ -115,7 +120,7 @@ fun GroupAddScreen(innerNavController: NavHostController) {
                             selectedUsers.isEmpty() -> {
                                 Toast.makeText(
                                     context,
-                                    "Please select group members",
+                                    context.getString(R.string.select_member_toast),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
@@ -123,11 +128,14 @@ fun GroupAddScreen(innerNavController: NavHostController) {
                             else -> {
                                 groupAddViewModel.createGroup(groupName, selectedUsers)
                                 innerNavController.popBackStack()
-                                Toast.makeText(context, "Group Created", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.group_created), Toast.LENGTH_SHORT
+                                ).show()
                             }
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(Color(0xFF2BCA8D)),
+                    colors = ButtonDefaults.buttonColors(CustomGreen),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
@@ -140,7 +148,7 @@ fun GroupAddScreen(innerNavController: NavHostController) {
                         .height(20.dp)
                 )
                 Text(
-                    text = "Select the users",
+                    text = stringResource(R.string.select_the_users),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
@@ -153,12 +161,12 @@ fun GroupAddScreen(innerNavController: NavHostController) {
             items(userList) { user ->
                 val currentUser = FirebaseAuth.getInstance().currentUser
                 if (currentUser != null) {
-                    if (user.email != currentUser.email) {
+                    if (user.id != currentUser.uid) {
                         GroupUserCard(user = user, selectedUsers) { isChecked ->
                             selectedUsers = if (isChecked) {
-                                selectedUsers + user.email
+                                selectedUsers + user.id
                             } else {
-                                selectedUsers - user.email
+                                selectedUsers - user.id
                             }
                         }
                     }
@@ -173,7 +181,7 @@ fun GroupAddScreen(innerNavController: NavHostController) {
 fun GroupUserCard(
     user: User,
     selectedUser: List<String>,
-    onUserSelected: (Boolean) -> Unit
+    onUserSelected: (Boolean) -> Unit,
 ) {
 
     var isChecked by remember { mutableStateOf(selectedUser.contains(user.email)) }
@@ -192,14 +200,20 @@ fun GroupUserCard(
                     isChecked = it
                     onUserSelected(it)
                 },
-                colors = CheckboxDefaults.colors(checkedColor = Color(0xFF2BCA8D))
+                colors = CheckboxDefaults.colors(checkedColor = CustomGreen)
             )
             Image(
-                painter = painterResource(id = R.drawable.account),
+                painter = rememberAsyncImagePainter(
+                    model = user.image, placeholder = painterResource(
+                        id = R.drawable.account
+                    )
+                ),
                 contentDescription = "",
+                contentScale = ContentScale.FillBounds,
                 modifier = Modifier
                     .size(60.dp)
                     .padding(4.dp)
+                    .clip(CircleShape)
             )
             Column(modifier = Modifier.padding(8.dp)) {
                 Text(

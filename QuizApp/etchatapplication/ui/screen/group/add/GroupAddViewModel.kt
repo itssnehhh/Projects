@@ -38,13 +38,30 @@ class GroupAddViewModel @Inject constructor(
 
     private fun getUserList() {
         viewModelScope.launch {
-            _isLoading.value = true
             withContext(Dispatchers.IO) {
-                delay(1000)
-                try {
-                    firestoreRepository.getUsersList { users ->
-                        _userList.value = users
+                _isLoading.value = true
+                withContext(Dispatchers.IO) {
+                    delay(1000)
+                    try {
+                        firestoreRepository.getUsersList { users ->
+                            _userList.value = users
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    } finally {
+                        _isLoading.value = false
                     }
+                }
+            }
+        }
+    }
+
+    fun createGroup(name: String, selectedUser: List<String>) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                _isLoading.value = true
+                try {
+                    firestoreRepository.createGroup(name, selectedUser)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 } finally {
@@ -53,17 +70,5 @@ class GroupAddViewModel @Inject constructor(
             }
         }
     }
-
-    fun createGroup(name: String, selectedUser: List<String>) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                firestoreRepository.createGroup(name, selectedUser)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
 }
+

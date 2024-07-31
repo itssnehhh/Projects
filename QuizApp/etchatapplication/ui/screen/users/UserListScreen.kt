@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -36,11 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -49,7 +46,8 @@ import com.example.etchatapplication.R
 import com.example.etchatapplication.constants.CONSTANTS.CHAT_SCREEN
 import com.example.etchatapplication.constants.CONSTANTS.GROUP_ADD_SCREEN
 import com.example.etchatapplication.model.User
-import com.example.etchatapplication.ui.screen.login.LoadingDialog
+import com.example.etchatapplication.ui.common.LoadingDialog
+import com.example.etchatapplication.ui.theme.CustomGreen
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,7 +81,9 @@ fun UserListScreen(navController: NavHostController) {
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${userList.size - 1} contacts",
+                            text = if (userList.size <= 1) stringResource(R.string.empty_contacts) else stringResource(
+                                R.string.contact_list, userList.size - 1
+                            ),
                             style = MaterialTheme.typography.titleSmall,
                             color = Color.White
                         )
@@ -100,14 +100,16 @@ fun UserListScreen(navController: NavHostController) {
                         imageVector = Icons.Default.Refresh,
                         contentDescription = "",
                         tint = Color.White,
-                        modifier = Modifier.padding(8.dp)
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .clickable { userListViewModel.getUserList() }
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(Color(0xFF2BCA8D))
+                colors = TopAppBarDefaults.topAppBarColors(CustomGreen)
             )
         }
     ) { paddingValues ->
-        if (isLoading) {
+        if (userList.size <= 1) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -115,14 +117,7 @@ fun UserListScreen(navController: NavHostController) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                CircularProgressIndicator(color = Color(0xFF2BCA8D))
-            }
-        } else if (userList.isEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = "No Users available", modifier = Modifier.padding(16.dp))
+                Text(text = stringResource(R.string.no_users_available),color = Color.Gray)
             }
         } else {
             LazyColumn(modifier = Modifier.padding(paddingValues)) {
@@ -152,16 +147,21 @@ fun UserCard(user: User, navController: NavHostController) {
             .fillMaxWidth()
             .padding(horizontal = 4.dp)
             .clickable {
-                navController.navigate("$CHAT_SCREEN/${user.email}")
+                navController.navigate("$CHAT_SCREEN/${user.id}")
             }
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
             Image(
-                painter = if (user.image?.isNotBlank() == true) rememberAsyncImagePainter(model = user.image) else painterResource(
-                    id = R.drawable.account
-                ),
+                painter = if (user.image?.isNotEmpty() == true) {
+                    rememberAsyncImagePainter(
+                        model = user.image,
+                        placeholder = painterResource(R.drawable.account)
+                    )
+                } else {
+                    painterResource(id = R.drawable.account)
+                },
                 contentDescription = "",
-                contentScale = ContentScale.Crop,
+                contentScale = ContentScale.FillBounds,
                 modifier = Modifier
                     .size(60.dp)
                     .padding(4.dp)
@@ -215,10 +215,4 @@ fun GroupCard(navController: NavHostController) {
         }
         HorizontalDivider()
     }
-}
-
-@Preview
-@Composable
-fun UserListScreenPreview() {
-    UserListScreen(NavHostController(LocalContext.current))
 }

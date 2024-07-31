@@ -12,4 +12,5 @@ object CONSTANTS {
     const val GROUP_ADD_SCREEN = "groupAddScreen"
     const val GROUP_DETAIL_SCREEN = "groupDetailScreen"
     const val GROUP_CHAT_SCREEN = "groupChatScreen"
+    const val TIME_DURATION = 500
 }

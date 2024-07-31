@@ -7,5 +7,5 @@ data class Message(
     val imageUrl: String? = "",
     val timestamp: Long = 0L,
     val isSent: Boolean = false,
-    val status: String = "sent" // new field for message status
+    val isRead: Boolean = false
 )

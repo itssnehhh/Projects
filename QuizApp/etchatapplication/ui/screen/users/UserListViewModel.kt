@@ -6,7 +6,6 @@ import com.example.etchatapplication.model.User
 import com.example.etchatapplication.repository.firestore.FirestoreRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -28,11 +27,10 @@ class UserListViewModel @Inject constructor(
         getUserList()
     }
 
-    private fun getUserList() {
+    fun getUserList() {
         viewModelScope.launch {
             _isLoading.value = true
             withContext(Dispatchers.IO) {
-                delay(1000)
                 try {
                     firestoreRepository.getUsersList { users ->
                         _userList.value = users

@@ -2,11 +2,9 @@ package com.example.etchatapplication.ui.screen.login
 
 import android.widget.Toast
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,9 +18,6 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,7 +47,10 @@ import androidx.navigation.NavHostController
 import com.example.etchatapplication.R
 import com.example.etchatapplication.constants.CONSTANTS.MAIN_SCREEN
 import com.example.etchatapplication.constants.CONSTANTS.SIGN_UP_SCREEN
-import com.example.etchatapplication.ui.screen.signup.InputTextField
+import com.example.etchatapplication.ui.common.InputTextField
+import com.example.etchatapplication.ui.common.LoadingDialog
+import com.example.etchatapplication.ui.theme.CustomBlue
+import com.example.etchatapplication.ui.theme.CustomGreen
 
 @Composable
 fun LoginScreen(navController: NavHostController) {
@@ -119,18 +117,18 @@ fun LoginScreen(navController: NavHostController) {
                         imeAction = ImeAction.Next
                     ),
                 )
-                TextButton(onClick = { /*TODO*/ }, modifier = Modifier.fillMaxWidth()) {
+                TextButton(onClick = { /*TODO*/ }) {
                     Text(
                         text = stringResource(R.string.forgot_password),
                         textAlign = TextAlign.End,
-                        color = Color(0xFF2BCA8D),
+                        color = CustomGreen,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
                     )
                 }
                 Button(
-                    colors = ButtonDefaults.buttonColors(Color(0xFF2BCA8D)),
+                    colors = ButtonDefaults.buttonColors(CustomGreen),
                     onClick = {
                         loginViewModel.checkCurrentUser(email, password, context) { isExist ->
                             if (isExist) {
@@ -186,7 +184,7 @@ fun LoginScreen(navController: NavHostController) {
                 }
                 Button(
                     onClick = { /*TODO*/ },
-                    colors = ButtonDefaults.buttonColors(Color(0xFF3DA8FF)),
+                    colors = ButtonDefaults.buttonColors(CustomBlue),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp)
@@ -223,7 +221,7 @@ fun LoginScreen(navController: NavHostController) {
                         Text(
                             text = stringResource(id = R.string.btn_signup),
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2BCA8D),
+                            color = CustomGreen,
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
@@ -234,37 +232,4 @@ fun LoginScreen(navController: NavHostController) {
     }
 }
 
-@Composable
-fun LoadingDialog(isLoading: Boolean) {
-    if (isLoading) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.4f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Card(
-                colors = CardDefaults.cardColors(Color.Black.copy(alpha = 0.6f)),
-                modifier = Modifier
-                    .align(Alignment.Center),
-                elevation = CardDefaults.cardElevation(8.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    CircularProgressIndicator(color = Color(0xFF2BCA8D))
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Text(
-                        text = "Loading...",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-            }
-        }
-    }
-}
+

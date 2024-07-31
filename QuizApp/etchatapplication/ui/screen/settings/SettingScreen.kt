@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -22,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -32,7 +30,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -40,20 +40,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import coil.compose.rememberAsyncImagePainter
 import com.example.etchatapplication.R
 import com.example.etchatapplication.constants.CONSTANTS.LOGIN_SCREEN
+import com.example.etchatapplication.ui.common.ShowAlertDialog
+import com.example.etchatapplication.ui.theme.CustomGreen
 
 @Composable
 fun SettingsScreen(
     navController: NavHostController,
     darkTheme: Boolean,
-    darkThemeChange: () -> Unit
+    darkThemeChange: () -> Unit,
 ) {
-
     val settingsViewModel = hiltViewModel<SettingsViewModel>()
     var notification by rememberSaveable { mutableStateOf(true) }
     val currentUser by settingsViewModel.currentUser.observeAsState()
     val showDialog by settingsViewModel.showDialog.collectAsState()
+    val userImageUrl by settingsViewModel.userImageUrl.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -62,8 +65,9 @@ fun SettingsScreen(
     ) {
         item {
             ProfileCard(
-                userName = currentUser?.displayName ?: "User Name",
-                userEmail = currentUser?.email ?: "Email",
+                userName = currentUser?.displayName ?: stringResource(R.string.user_name),
+                userEmail = currentUser?.email ?: stringResource(R.string.email),
+                userImageUrl = userImageUrl
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(
@@ -101,48 +105,18 @@ fun SettingsScreen(
         }
     }
     if (showDialog) {
-        AlertDialog(
-            containerColor = Color(0xFF2BCA8D),
-            onDismissRequest = { settingsViewModel.onDialogStatusChange(true) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        settingsViewModel.logOut()
-                        navController.navigate(LOGIN_SCREEN) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    }
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.btn_logout),
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium
-                    )
+        ShowAlertDialog(
+            onDismissRequest = { settingsViewModel.onDialogStatusChange(false) },
+            onConfirmClick = {
+                settingsViewModel.logOut()
+                navController.navigate(LOGIN_SCREEN) {
+                    popUpTo(0) { inclusive = true }
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { settingsViewModel.onDialogStatusChange(false) }) {
-                    Text(
-                        text = stringResource(R.string.btn_cancel),
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-            },
-            title = {
-                Text(
-                    text = stringResource(R.string.logout),
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleLarge
-                )
-            },
-            text = {
-                Text(
-                    text = stringResource(R.string.logout_dialog_msg),
-                    color = Color.White,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
+            confirmButtonText = stringResource(id = R.string.btn_logout),
+            onDismissClick = { settingsViewModel.onDialogStatusChange(false) },
+            title = stringResource(R.string.logout),
+            text = stringResource(R.string.logout_dialog_msg)
         )
     }
 }
@@ -187,7 +161,7 @@ fun Switch(image: Int, title: String, checked: Boolean, onCheckedChange: ((Boole
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedTrackColor = Color(0xFF2BCA8D),
+                checkedTrackColor = CustomGreen,
                 uncheckedTrackColor = Color.LightGray,
                 checkedThumbColor = Color.White
             ),
@@ -197,22 +171,38 @@ fun Switch(image: Int, title: String, checked: Boolean, onCheckedChange: ((Boole
 }
 
 @Composable
-fun ProfileCard(userName: String, userEmail: String) {
+fun ProfileCard(userName: String, userEmail: String, userImageUrl: String?) {
     Card(
-        colors = CardDefaults.cardColors(Color(0xFF2BCA8D)),
+        colors = CardDefaults.cardColors(CustomGreen),
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
     ) {
         Row {
-            Image(
-                painter = painterResource(id = R.drawable.account),
-                contentDescription = "",
-                modifier = Modifier
-                    .size(120.dp)
-                    .padding(8.dp)
-                    .border(1.dp, Color.DarkGray, CircleShape)
-            )
+            if (userImageUrl != null) {
+                Image(
+                    painter = rememberAsyncImagePainter(
+                        userImageUrl,
+                        placeholder = painterResource(R.drawable.account)
+                    ),
+                    contentDescription = "",
+                    contentScale = ContentScale.FillBounds,
+                    modifier = Modifier
+                        .size(120.dp)
+                        .padding(8.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, Color.DarkGray, CircleShape)
+                )
+            } else {
+                Image(
+                    painter = painterResource(id = R.drawable.account),
+                    contentDescription = "",
+                    modifier = Modifier
+                        .size(120.dp)
+                        .padding(8.dp)
+                        .border(1.dp, Color.DarkGray, CircleShape)
+                )
+            }
             Column(
                 modifier = Modifier
                     .padding(12.dp)

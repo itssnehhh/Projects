@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -32,20 +33,19 @@ import androidx.navigation.NavHostController
 import com.example.etchatapplication.R
 import com.example.etchatapplication.constants.CONSTANTS.GROUP_CHAT_SCREEN
 import com.example.etchatapplication.model.Group
+import com.example.etchatapplication.ui.theme.CustomGreen
 
 @Composable
-fun GroupScreen(innerNavController: NavHostController) {
+fun GroupListScreen(innerNavController: NavHostController) {
 
-    val groupViewModel = hiltViewModel<GroupScreenViewModel>()
+    val groupViewModel = hiltViewModel<GroupListScreenViewModel>()
     val groupList by groupViewModel.groupList.collectAsState()
-
-
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
             Text(
-                text = "Groups",
-                color = Color(0xFF2BCA8D),
+                text = stringResource(R.string.groups_title),
+                color = CustomGreen,
                 fontWeight = FontWeight.W600,
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(16.dp)
@@ -58,7 +58,11 @@ fun GroupScreen(innerNavController: NavHostController) {
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(text = "No Groups available", modifier = Modifier.padding(16.dp))
+                    Text(
+                        text = stringResource(R.string.no_groups_available),
+                        modifier = Modifier.padding(16.dp),
+                        color = Color.Gray
+                    )
                 }
             }
         }
@@ -79,7 +83,6 @@ fun GroupChatListCard(group: Group, innerNavController: NavHostController) {
                 innerNavController.navigate("$GROUP_CHAT_SCREEN/${group.id}")
             }
     ) {
-
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
             Image(
                 painter = painterResource(id = R.drawable.account),
@@ -101,19 +104,11 @@ fun GroupChatListCard(group: Group, innerNavController: NavHostController) {
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
                 Text(
-                    text = "lastMessage",
+                    text = group.lastMessage,
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.DarkGray
                 )
             }
-            Text(
-                text = "00:00",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
-                modifier = Modifier
-                    .align(Alignment.Bottom)
-                    .padding(horizontal = 4.dp)
-            )
         }
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
     }
@@ -122,5 +117,5 @@ fun GroupChatListCard(group: Group, innerNavController: NavHostController) {
 @Preview
 @Composable
 fun GroupScreenPreview() {
-    GroupScreen(NavHostController(LocalContext.current))
+    GroupListScreen(NavHostController(LocalContext.current))
 }

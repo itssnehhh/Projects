@@ -1,4 +1,4 @@
-package com.example.etchatapplication.repository.firestorage
+package com.example.etchatapplication.repository.storage
 
 import android.net.Uri
 import com.google.firebase.storage.FirebaseStorage
@@ -13,11 +13,11 @@ class StorageRepository @Inject constructor() {
     private val storageReference = FirebaseStorage.getInstance().reference
 
     suspend fun uploadProfilePicture(uri: Uri): String {
-        val profileImageRef =
-            storageReference.child("profile_images/${System.currentTimeMillis()}.jpg")
-        val uploadProfileImage = profileImageRef.putFile(uri).await()
-        return profileImageRef.downloadUrl.await().toString()
+        val storageRef = storageReference.child("profile_images/${UUID.randomUUID()}.jpg")
+        val uploadTask = storageRef.putFile(uri).await()
+        return storageRef.downloadUrl.await().toString()
     }
+
 
     suspend fun uploadImage(uri: Uri): String {
         val imageRef = storageReference.child("chat_images/${UUID.randomUUID()}.jpg")

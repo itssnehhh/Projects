@@ -2,21 +2,22 @@ package com.example.etchatapplication.ui.screen.group.chat
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.etchatapplication.model.Message
 import com.example.etchatapplication.repository.firestore.FirestoreRepository
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.storage.FirebaseStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import java.util.UUID
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
 class GroupChatViewModel @Inject constructor(
-    private val firestoreRepository: FirestoreRepository
+    private val firestoreRepository: FirestoreRepository,
 ) : ViewModel() {
-
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
     val messages: StateFlow<List<Message>> = _messages
 
@@ -24,39 +25,17 @@ class GroupChatViewModel @Inject constructor(
     val newMessage: StateFlow<String> = _newMessage
 
     private val _imageUri = MutableStateFlow<Uri?>(null)
-    val imageUri: StateFlow<Uri?> = _imageUri
 
     private lateinit var groupId: String
+    private val _userNameMap = MutableStateFlow<Map<String, String>>(emptyMap())
+
+    private val _groupName = MutableStateFlow("")
+    val groupName: StateFlow<String> = _groupName
 
     fun init(groupId: String) {
         this.groupId = groupId
         loadMessages(groupId)
-    }
-
-    private fun loadMessages(groupId: String) {
-        firestoreRepository.getGroupMessages(groupId) { messages ->
-            _messages.value = messages
-        }
-    }
-
-    fun sendMessage(groupId: String) {
-        val senderId = FirebaseAuth.getInstance().currentUser?.email ?: ""
-        val content = _newMessage.value.trim()
-        if (content.isNotBlank()) {
-            firestoreRepository.sendMessageToGroup(groupId, senderId, content, null)
-            _newMessage.value = ""
-        }
-    }
-
-    fun uploadImageAndSendMessage(uri: Uri) {
-        firestoreRepository.uploadImage(uri) { imageUrl ->
-            sendImageMessage(groupId, imageUrl)
-        }
-    }
-
-    private fun sendImageMessage(groupId: String, imageUrl: String) {
-        val senderId = FirebaseAuth.getInstance().currentUser?.email ?: ""
-        firestoreRepository.sendMessageToGroup(groupId, senderId, "", imageUrl)
+        loadGroupDetails(groupId)
     }
 
     fun onImageUriChange(uri: Uri?) {
@@ -66,4 +45,86 @@ class GroupChatViewModel @Inject constructor(
     fun updateMessage(message: String) {
         _newMessage.value = message
     }
+
+    fun getSenderName(senderId: String): String {
+        return _userNameMap.value[senderId] ?: senderId
+    }
+
+    private fun loadMessages(groupId: String) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                firestoreRepository.getGroupMessages(groupId) { messages ->
+                    _messages.value = messages
+                    fetchUserNames(messages)
+                }
+            }
+        }
+    }
+
+    fun sendMessage(groupId: String) {
+        val senderId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        val content = _newMessage.value.trim()
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                if (content.isNotBlank()) {
+                    firestoreRepository.sendMessageToGroup(groupId, senderId, content, null)
+                    _newMessage.value = ""
+                }
+            }
+        }
+    }
+
+    private fun loadGroupDetails(groupId: String) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                firestoreRepository.getGroupDetails(groupId) { group ->
+                    if (group != null) {
+                        _groupName.value = group.name
+                    }
+                }
+            }
+        }
+    }
+
+    private fun fetchUserNames(messages: List<Message>) {
+        val userIds = messages.map { it.senderId }.distinct()
+        viewModelScope.launch {
+            withContext(Dispatchers.IO){
+                userIds.forEach { userId ->
+                    firestoreRepository.getUserDetails(userId) { user ->
+                        val updatedMap = _userNameMap.value.toMutableMap()
+                        updatedMap[userId] = "${user.firstname} ${user.lastname}"
+                        _userNameMap.value = updatedMap
+                    }
+                }
+            }
+        }
+    }
+
+    fun uploadImageAndSendMessage(uri: Uri) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                firestoreRepository.uploadImage(uri) { imageUrl ->
+                    sendImageMessage(groupId, imageUrl)
+                }
+            }
+        }
+    }
+
+    private fun sendImageMessage(groupId: String, imageUrl: String) {
+        val senderId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                firestoreRepository.sendMessageToGroup(groupId, senderId, "", imageUrl)
+            }
+        }
+    }
 }
+
+
+
+
+
+
+
+

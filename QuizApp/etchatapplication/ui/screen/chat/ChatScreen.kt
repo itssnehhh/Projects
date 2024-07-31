@@ -8,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -50,6 +51,7 @@ import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import com.example.etchatapplication.R
 import com.example.etchatapplication.model.Message
+import com.example.etchatapplication.ui.theme.CustomGreen
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,10 +61,13 @@ fun ChatScreen(innerNavController: NavHostController, userId: String?) {
     val chatViewModel = hiltViewModel<ChatViewModel>()
     val textMessage by chatViewModel.textMessage.collectAsState()
     val messages by chatViewModel.messages.collectAsState()
+    val userDetails by chatViewModel.userDetails.collectAsState()
+    val showPreview by chatViewModel.preview.collectAsState()
 
     LaunchedEffect(userId) {
         if (userId != null) {
             chatViewModel.getOrCreateRoom(userId)
+            chatViewModel.getUserDetails(userId)
         }
     }
 
@@ -80,15 +85,21 @@ fun ChatScreen(innerNavController: NavHostController, userId: String?) {
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Image(
-                            painter = painterResource(id = R.drawable.account),
+                            painter = rememberAsyncImagePainter(
+                                model = userDetails?.image, placeholder = painterResource(
+                                    id = R.drawable.account
+                                )
+                            ),
                             contentDescription = "",
+                            contentScale = ContentScale.FillBounds,
                             modifier = Modifier
                                 .size(60.dp)
                                 .padding(4.dp)
-                                .border(1.dp, Color.DarkGray, CircleShape)
+                                .clip(CircleShape)
+                                .border(1.dp, Color.Gray, CircleShape)
                         )
                         Text(
-                            text = "$userId",
+                            text = "${userDetails?.firstname} ${userDetails?.lastname}",
                             color = Color.White,
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.padding(8.dp)
@@ -105,7 +116,7 @@ fun ChatScreen(innerNavController: NavHostController, userId: String?) {
                             .clickable { innerNavController.popBackStack() }
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(Color(0xFF2BCA8D))
+                colors = TopAppBarDefaults.topAppBarColors(CustomGreen)
             )
         },
         bottomBar = {
@@ -178,6 +189,17 @@ fun ChatScreen(innerNavController: NavHostController, userId: String?) {
                 items(messages) { message ->
                     ChatCard(message = message)
                 }
+                item {
+                    if (showPreview) {
+                        Column(horizontalAlignment = Alignment.End, modifier = Modifier.fillMaxWidth()) {
+                            Image(
+                                painter = painterResource(id = R.drawable.media),
+                                contentDescription = "",
+                                modifier = Modifier.size(120.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -186,8 +208,8 @@ fun ChatScreen(innerNavController: NavHostController, userId: String?) {
 @Composable
 fun ChatCard(message: Message) {
 
-    val isCurrentUser = message.senderId == FirebaseAuth.getInstance().currentUser?.email
-    val backgroundColor = if (isCurrentUser) Color(0xFF2BCA8D) else Color.Gray
+    val isCurrentUser = message.senderId == FirebaseAuth.getInstance().currentUser?.uid
+    val backgroundColor = if (isCurrentUser) CustomGreen else Color.Gray
 
     Row(
         modifier = Modifier
@@ -209,11 +231,14 @@ fun ChatCard(message: Message) {
                 )
             }
         if (message.imageUrl?.isNotBlank() == true) {
-            val painter = rememberAsyncImagePainter(message.imageUrl)
+            val painter = rememberAsyncImagePainter(
+                model = message.imageUrl,
+                placeholder = painterResource(id = R.drawable.account)
+            )
             Box {
                 if (painter.state is AsyncImagePainter.State.Loading) {
                     CircularProgressIndicator(
-                        color = Color(0xFF2BCA8D),
+                        color = CustomGreen,
                         modifier = Modifier
                             .padding(16.dp)
                             .align(Alignment.Center)

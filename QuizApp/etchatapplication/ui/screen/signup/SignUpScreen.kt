@@ -1,5 +1,6 @@
 package com.example.etchatapplication.ui.screen.signup
 
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,8 +26,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -52,7 +51,9 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.etchatapplication.R
 import com.example.etchatapplication.constants.CONSTANTS.LOGIN_SCREEN
 import com.example.etchatapplication.constants.CONSTANTS.MAIN_SCREEN
-import com.example.etchatapplication.ui.screen.login.LoadingDialog
+import com.example.etchatapplication.ui.common.InputTextField
+import com.example.etchatapplication.ui.common.LoadingDialog
+import com.example.etchatapplication.ui.theme.CustomGreen
 
 @Composable
 fun SignUpScreen(navController: NavHostController) {
@@ -172,32 +173,35 @@ fun SignUpScreen(navController: NavHostController) {
                     supportingText = { Text(text = stringResource(R.string.password_hint), color = Color.DarkGray) },
                 )
                 Button(
-                    colors = ButtonDefaults.buttonColors(Color(0xFF2BCA8D)),
+                    colors = ButtonDefaults.buttonColors(CustomGreen),
                     onClick = {
-                        signUpViewModel.createAccount(
-                            imageUri = profileImageUri.toString(),
-                            firstName = firstName,
-                            lastName = lastName,
-                            email = email,
-                            password = password,
-                            confirmPassword = confirmPassword,
-                            context = context
-                        ) { isValid ->
-                            if (isValid) {
-                                profileImageUri?.let { uri ->
-                                    signUpViewModel.uploadProfileImage(uri)
-                                    navController.navigate(MAIN_SCREEN) {
-                                        popUpTo(LOGIN_SCREEN) { inclusive = true }
-                                    }
-                                } ?: run {
-                                    navController.navigate(MAIN_SCREEN) {
-                                        popUpTo(LOGIN_SCREEN) { inclusive = true }
+                        signUpViewModel.uploadProfileImage(profileImageUri ?: Uri.EMPTY) { downloadUrl ->
+                            if (downloadUrl != null) {
+                                signUpViewModel.createAccount(
+                                    imageUri = downloadUrl,
+                                    firstName = firstName,
+                                    lastName = lastName,
+                                    email = email,
+                                    password = password,
+                                    confirmPassword = confirmPassword,
+                                    context = context
+                                ) { isValid ->
+                                    if (isValid) {
+                                        navController.navigate(MAIN_SCREEN) {
+                                            popUpTo(LOGIN_SCREEN) { inclusive = true }
+                                        }
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.toast_email_exist),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 }
                             } else {
                                 Toast.makeText(
                                     context,
-                                    context.getString(R.string.toast_email_exist),
+                                    context.getString(R.string.toast_image_upload_failed),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
@@ -209,6 +213,7 @@ fun SignUpScreen(navController: NavHostController) {
                 ) {
                     Text(text = stringResource(R.string.btn_signup))
                 }
+
 
                 Row(
                     horizontalArrangement = Arrangement.Center,
@@ -231,7 +236,7 @@ fun SignUpScreen(navController: NavHostController) {
                         Text(
                             text = stringResource(R.string.btn_login),
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2BCA8D),
+                            color = CustomGreen,
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
@@ -242,43 +247,3 @@ fun SignUpScreen(navController: NavHostController) {
     }
 }
 
-@Composable
-fun InputTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: @Composable (() -> Unit)? = null,
-    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    leadingIcon: @Composable (() -> Unit)? = null,
-    trailingIcon: @Composable (() -> Unit)? = null,
-    visualTransformation: VisualTransformation = VisualTransformation.None,
-    supportingText: @Composable (() -> Unit)? = null
-) {
-    TextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = label,
-        keyboardOptions = keyboardOptions.copy(
-            imeAction = ImeAction.Next
-        ),
-        maxLines = 1,
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = Color(0xFFE2F8F0),
-            unfocusedContainerColor = Color(0xFFE2F8F0),
-            unfocusedIndicatorColor = Color(0xFF008652),
-            focusedIndicatorColor = Color(0xFF008652),
-            unfocusedLeadingIconColor = Color.Black,
-            focusedLeadingIconColor = Color.Black,
-            focusedTextColor = Color.Black,
-            unfocusedTextColor = Color.Black,
-            focusedLabelColor = Color.Black,
-            unfocusedLabelColor = Color.Black
-        ),
-        leadingIcon = leadingIcon,
-        trailingIcon = trailingIcon,
-        visualTransformation = visualTransformation,
-        supportingText = supportingText,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    )
-}

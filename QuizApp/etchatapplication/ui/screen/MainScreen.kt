@@ -1,5 +1,14 @@
 package com.example.etchatapplication.ui.screen
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.EaseIn
+import androidx.compose.animation.core.EaseOut
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
@@ -18,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -31,13 +41,14 @@ import com.example.etchatapplication.constants.CONSTANTS.GROUP_DETAIL_SCREEN
 import com.example.etchatapplication.constants.CONSTANTS.GROUP_SCREEN
 import com.example.etchatapplication.constants.CONSTANTS.HOME_SCREEN
 import com.example.etchatapplication.constants.CONSTANTS.SETTINGS_SCREEN
+import com.example.etchatapplication.constants.CONSTANTS.TIME_DURATION
 import com.example.etchatapplication.constants.CONSTANTS.USERS_LIST_SCREEN
 import com.example.etchatapplication.model.BottomNavItem
 import com.example.etchatapplication.ui.screen.chat.ChatScreen
 import com.example.etchatapplication.ui.screen.group.add.GroupAddScreen
 import com.example.etchatapplication.ui.screen.group.chat.GroupChatScreen
 import com.example.etchatapplication.ui.screen.group.detail.GroupDetailScreen
-import com.example.etchatapplication.ui.screen.group.list.GroupScreen
+import com.example.etchatapplication.ui.screen.group.list.GroupListScreen
 import com.example.etchatapplication.ui.screen.home.HomeScreen
 import com.example.etchatapplication.ui.screen.settings.SettingsScreen
 import com.example.etchatapplication.ui.screen.users.UserListScreen
@@ -102,29 +113,48 @@ fun NavHostContainer(
             HomeScreen(innerNavController)
         }
         composable(GROUP_SCREEN) {
-            GroupScreen(innerNavController)
+            GroupListScreen(innerNavController)
         }
         composable(SETTINGS_SCREEN) {
             SettingsScreen(navController, darkTheme, darkThemeChange)
         }
-        composable(route = USERS_LIST_SCREEN) {
+        composable(
+            route = USERS_LIST_SCREEN,
+            enterTransition = enterTransition,
+            exitTransition = exitTransition
+        ) {
             UserListScreen(innerNavController)
         }
-        composable("$CHAT_SCREEN/{userId}") { navBackStack ->
+        composable(
+            route = "$CHAT_SCREEN/{userId}",
+            enterTransition = enterTransition,
+            exitTransition = exitTransition
+        ) { navBackStack ->
             val userId = navBackStack.arguments?.getString("userId")
             ChatScreen(innerNavController, userId)
         }
-        composable(GROUP_ADD_SCREEN) {
+        composable(
+            route = GROUP_ADD_SCREEN,
+            enterTransition = enterTransition,
+            exitTransition = exitTransition
+        ) {
             GroupAddScreen(innerNavController)
         }
-        composable("$GROUP_DETAIL_SCREEN/{groupId}") { navBackStack ->
+        composable(
+            route = "$GROUP_DETAIL_SCREEN/{groupId}",
+            enterTransition = enterTransition,
+            exitTransition = exitTransition
+        ) { navBackStack ->
             val groupId = navBackStack.arguments?.getString("groupId")
             if (groupId != null) {
                 GroupDetailScreen(innerNavController, groupId)
             }
         }
-
-        composable("$GROUP_CHAT_SCREEN/{groupId}") { navBackStack ->
+        composable(
+            route = "$GROUP_CHAT_SCREEN/{groupId}",
+            enterTransition = enterTransition,
+            exitTransition = exitTransition
+        ) { navBackStack ->
             val groupId = navBackStack.arguments?.getString("groupId")
             if (groupId != null) {
                 GroupChatScreen(innerNavController, groupId)
@@ -177,3 +207,18 @@ fun BottomNavigationBar(navController: NavHostController) {
     }
 }
 
+val enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+    fadeIn(animationSpec = tween(TIME_DURATION, easing = LinearEasing)) +
+            slideIntoContainer(
+                animationSpec = tween(TIME_DURATION, easing = EaseIn),
+                towards = AnimatedContentTransitionScope.SlideDirection.Start
+            )
+}
+
+val exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+    fadeOut(animationSpec = tween(durationMillis = TIME_DURATION, easing = LinearEasing)) +
+            slideOutOfContainer(
+                animationSpec = tween(durationMillis = TIME_DURATION, easing = EaseOut),
+                towards = AnimatedContentTransitionScope.SlideDirection.End
+            )
+}

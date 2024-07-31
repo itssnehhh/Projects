@@ -8,7 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.etchatapplication.R
 import com.example.etchatapplication.repository.auth.FirebaseAuthRepository
-import com.example.etchatapplication.repository.firestorage.StorageRepository
+import com.example.etchatapplication.repository.storage.StorageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +20,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SignUpViewModel @Inject constructor(
     private val authRepository: FirebaseAuthRepository,
-    private val storageRepository: StorageRepository
+    private val storageRepository: StorageRepository,
 ) : ViewModel() {
 
     private val fName = MutableStateFlow("")
@@ -44,12 +44,12 @@ class SignUpViewModel @Inject constructor(
     private val _profileImageUri = MutableStateFlow<Uri?>(null)
     val profileImageUri: StateFlow<Uri?> = _profileImageUri
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
     fun onProfileImageUriChange(uri: Uri) {
         _profileImageUri.value = uri
     }
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
 
     fun onFirstNameChange(name: String) {
         fName.value = name
@@ -92,7 +92,7 @@ class SignUpViewModel @Inject constructor(
         password: String,
         confirmPassword: String,
         context: Context,
-        onResult: (Boolean) -> Unit
+        onResult: (Boolean) -> Unit,
     ) {
         when {
             firstName.isEmpty() || lastName.isEmpty() -> {
@@ -130,8 +130,8 @@ class SignUpViewModel @Inject constructor(
 
             else -> {
                 viewModelScope.launch {
+                    _isLoading.value = true
                     withContext(Dispatchers.IO) {
-                        _isLoading.value = true
                         authRepository.signUp(
                             fName = firstName,
                             lName = lastName,
@@ -148,12 +148,23 @@ class SignUpViewModel @Inject constructor(
         }
     }
 
-    fun uploadProfileImage(uri: Uri): String {
+    fun uploadProfileImage(uri: Uri, onResult: (String?) -> Unit) {
         viewModelScope.launch {
+            _isLoading.value = true
             withContext(Dispatchers.IO) {
-                storageRepository.uploadProfilePicture(uri)
+                try {
+                    val downloadUrl = storageRepository.uploadProfilePicture(uri)
+                    withContext(Dispatchers.Main) {
+                        onResult(downloadUrl)
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        onResult(null)
+                    }
+                } finally {
+                    _isLoading.value = false
+                }
             }
         }
-        return uri.toString()
     }
 }

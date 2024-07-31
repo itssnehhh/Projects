@@ -1,8 +1,11 @@
 package com.example.etchatapplication.model
 
 data class Group(
-    val id: String = "",
+    var id: String = "",
     val name: String = "",
     val users: List<String?> = emptyList(),
-    val createdBy: String = ""
+    val createdBy: String = "",
+    val lastMessage :String = "",
+    val unreadCount: Int = 0
 )
+

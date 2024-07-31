@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -23,31 +24,37 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import coil.compose.rememberAsyncImagePainter
 import com.example.etchatapplication.R
 import com.example.etchatapplication.constants.CONSTANTS.CHAT_SCREEN
 import com.example.etchatapplication.constants.CONSTANTS.USERS_LIST_SCREEN
 import com.example.etchatapplication.model.ChatRoom
+import com.example.etchatapplication.model.User
+import com.example.etchatapplication.ui.theme.CustomGreen
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun HomeScreen(navController: NavHostController) {
-
     val homeViewModel = hiltViewModel<HomeViewModel>()
     val chatRoomList by homeViewModel.chatRoomList.collectAsState()
+    val userDetails by homeViewModel.userDetails.collectAsState()
 
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { navController.navigate(USERS_LIST_SCREEN) },
-                containerColor = Color(0xFF2BCA8D)
+                containerColor = CustomGreen
             ) {
                 Image(painter = painterResource(id = R.drawable.message), contentDescription = "")
             }
@@ -60,8 +67,8 @@ fun HomeScreen(navController: NavHostController) {
         ) {
             item {
                 Text(
-                    text = "Chats",
-                    color = Color(0xFF2BCA8D),
+                    text = stringResource(R.string.chats_title),
+                    color = CustomGreen,
                     fontWeight = FontWeight.W600,
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.padding(16.dp)
@@ -74,40 +81,55 @@ fun HomeScreen(navController: NavHostController) {
                         modifier = Modifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(text = "No Chats available", modifier = Modifier.padding(16.dp))
+                        Text(
+                            text = stringResource(R.string.no_chats_available),
+                            modifier = Modifier.padding(16.dp),
+                            color = Color.Gray
+                        )
                     }
                 }
             }
-
-            items(chatRoomList) { user ->
-                UserChatList(user = user, navController)
+            items(chatRoomList) { chatRoom ->
+                val otherUserId =
+                    chatRoom.participants.first { it != FirebaseAuth.getInstance().currentUser?.uid }
+                val user = userDetails[otherUserId]
+                if (user != null) {
+                    UserChatList(chatRoom, user, navController, homeViewModel)
+                }
             }
         }
     }
 }
 
 @Composable
-fun UserChatList(user: ChatRoom, navController: NavHostController) {
-
-    val currentUser = FirebaseAuth.getInstance().currentUser?.email ?: return
-    val otherUser = user.participants.contains(currentUser)
-
+fun UserChatList(
+    chatRoom: ChatRoom,
+    user: User,
+    navController: NavHostController,
+    homeViewModel: HomeViewModel,
+) {
     Card(
         colors = CardDefaults.cardColors(Color.White),
         shape = TextFieldDefaults.shape,
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                navController.navigate("$CHAT_SCREEN/${user.participants}")
+                homeViewModel.markMessagesAsRead(chatRoom.chatroomId) // Mark messages as read
+                navController.navigate("$CHAT_SCREEN/${user.id}")
             }
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
             Image(
-                painter = painterResource(id = R.drawable.account),
+                painter = rememberAsyncImagePainter(
+                    model = user.image,
+                    placeholder = painterResource(id = R.drawable.account)
+                ),
                 contentDescription = "",
+                contentScale = ContentScale.FillBounds,
                 modifier = Modifier
                     .size(60.dp)
                     .padding(4.dp)
+                    .clip(CircleShape)
                     .align(Alignment.CenterVertically)
             )
             Column(
@@ -116,15 +138,17 @@ fun UserChatList(user: ChatRoom, navController: NavHostController) {
                     .padding(4.dp)
             ) {
                 Text(
-                    text = user.chatroomId,
+                    text = "${user.firstname} ${user.lastname}",
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.Black,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
                 Text(
-                    text = user.lastMessage,
+                    text = if (chatRoom.unreadCount > 0) {
+                        "${chatRoom.unreadCount} unread messages"
+                    } else chatRoom.lastMessage,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.DarkGray
+                    color = if (chatRoom.unreadCount > 0) CustomGreen else Color.DarkGray
                 )
             }
         }

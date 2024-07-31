@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -22,7 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -34,13 +32,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import coil.compose.rememberAsyncImagePainter
 import com.example.etchatapplication.R
+import com.example.etchatapplication.ui.common.ShowAlertDialog
+import com.example.etchatapplication.ui.theme.CustomGreen
+import com.example.etchatapplication.ui.theme.DarkestGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +55,7 @@ fun GroupDetailScreen(
     val group by viewModel.group.collectAsState()
     val isShowing by viewModel.show.collectAsState()
     val context = LocalContext.current
+    val userDetails by viewModel.userDetails.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.loadGroupDetails(groupId)
@@ -71,7 +75,7 @@ fun GroupDetailScreen(
                             .clickable { innerNavController.popBackStack() }
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(Color(0xFF2BCA8D))
+                colors = TopAppBarDefaults.topAppBarColors(CustomGreen)
             )
         }
     ) { paddingValues ->
@@ -96,7 +100,10 @@ fun GroupDetailScreen(
                     style = MaterialTheme.typography.titleLarge
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                group?.users?.forEach { user ->
+
+                // Display user details
+                group?.users?.forEach { userId ->
+                    val user = userDetails[userId]
                     Card(
                         colors = CardDefaults.cardColors(Color.White),
                         modifier = Modifier
@@ -106,24 +113,33 @@ fun GroupDetailScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Image(
-                                painter = painterResource(id = R.drawable.account),
+                                painter = if (user?.image?.isNotEmpty() == true) {
+                                    rememberAsyncImagePainter(
+                                        model = user.image,
+                                        placeholder = painterResource(id = R.drawable.account)
+                                    )
+                                } else {
+                                    painterResource(id = R.drawable.account)
+                                },
                                 contentDescription = "",
+                                contentScale = ContentScale.FillBounds,
                                 modifier = Modifier
                                     .size(60.dp)
                                     .padding(8.dp)
+                                    .clip(CircleShape)
                             )
                             Text(
-                                text = user.toString(),
+                                text = "${user?.firstname} ${user?.lastname}",
                                 modifier = Modifier
                                     .weight(1f)
                                     .padding(horizontal = 8.dp),
                                 color = Color.Black,
                                 style = MaterialTheme.typography.titleMedium
                             )
-                            if (user.toString() == group?.createdBy) {
+                            if (userId == group?.createdBy) {
                                 Text(
-                                    text = "Admin",
-                                    color = Color(0xFF009E06),
+                                    text = stringResource(R.string.admin),
+                                    color = DarkestGreen,
                                     style = MaterialTheme.typography.titleMedium,
                                     modifier = Modifier.padding(16.dp)
                                 )
@@ -159,45 +175,13 @@ fun GroupDetailScreen(
     }
 
     if (isShowing) {
-        AlertDialog(
-            containerColor = Color(0xFF2BCA8D),
+        ShowAlertDialog(
             onDismissRequest = { viewModel.showExitDialog(true) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deleteGroup(groupId, context, innerNavController)
-                    }
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.exit),
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.showExitDialog(false) }) {
-                    Text(
-                        text = stringResource(R.string.btn_cancel),
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-            },
-            title = {
-                Text(
-                    text = stringResource(R.string.yes),
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleLarge
-                )
-            },
-            text = {
-                Text(
-                    text = "Are you sure you want to exit from group ?",
-                    color = Color.White,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
+            onConfirmClick = { viewModel.deleteGroup(groupId, context, innerNavController) },
+            confirmButtonText = stringResource(id = R.string.btn_exit),
+            onDismissClick = { viewModel.showExitDialog(false) },
+            title = stringResource(R.string.exit),
+            text = stringResource(R.string.exit_group_msg)
         )
     }
 }
