@@ -1,0 +1,185 @@
+import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/adapters.dart';
+
+import 'home_screen.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  await Hive.openBox('translations');
+  runApp(const MinionSpeakApp());
+}
+
+class MinionSpeakApp extends StatelessWidget {
+  const MinionSpeakApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Minion Speak',
+      theme: ThemeData(primarySwatch: Colors.yellow),
+      home: const HomeScreen(),
+    );
+  }
+}
+
+---------------
+
+import 'package:audioplayers/audioplayers.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+
+import 'history_screen.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController _textController = TextEditingController();
+  String _translatedText = '';
+  bool _isLoading = false;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
+  Future<void> _translateText() async {
+    if (_textController.text.isEmpty) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final response = await Dio().get(
+          'https://api.funtranslations.com/translate/minion.json',
+          queryParameters: {'text': _textController.text});
+      setState(() {
+        _translatedText = response.data['contents']['translated'];
+      });
+
+      final box = Hive.box('translations');
+      box.add(_translatedText);
+    } catch (e) {
+      setState(() {
+        _translatedText = 'Error translating text!';
+      });
+    }
+    setState(() => _isLoading = false);
+  }
+
+  void _playAudio() async {
+    try {
+      await _audioPlayer.setSourceUrl('https://www.myinstants.com/media/sounds/banana_minions.mp3');
+      await _audioPlayer.resume(); // Use `resume()` instead of `play()`
+    } catch (e) {
+      debugPrint("Error playing audio: $e");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Minion Speak")),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _textController,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: "Enter text in English",
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _isLoading ? null : _translateText,
+              child: _isLoading
+                  ? const CircularProgressIndicator()
+                  : const Text("Translate"),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Minion Language:",
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _translatedText,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            if (_translatedText.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.volume_up, size: 30),
+                onPressed: _playAudio,
+              ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => HistoryScreen())),
+        child: const Icon(Icons.history),
+      ),
+    );
+  }
+}
+
+-------------
+
+import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+
+class HistoryScreen extends StatefulWidget {
+  const HistoryScreen({super.key});
+
+  @override
+  _HistoryScreenState createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  late Box _box;
+
+  @override
+  void initState() {
+    super.initState();
+    _box = Hive.box('translations');
+  }
+
+  void _clearHistory() {
+    _box.clear();
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Translation History")),
+      body: _box.isEmpty
+          ? const Center(child: Text("No translation history available"))
+          : ListView.builder(
+        itemCount: _box.length,
+        itemBuilder: (context, index) {
+          final translation = _box.getAt(index);
+          return ListTile(
+            title: Text(translation),
+            trailing: IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () {
+                _box.deleteAt(index);
+                setState(() {});
+              },
+            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _clearHistory,
+        child: const Icon(Icons.delete),
+      ),
+    );
+  }
+}
